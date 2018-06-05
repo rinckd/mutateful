@@ -9,7 +9,13 @@ namespace Mutate4l.Cli
     {
         public static void Start()
         {
-            string command = "";
+            while (true)
+            {
+                var data = UdpConnector.WaitForData();
+                Console.WriteLine($"Received data: {data}");
+            }
+            
+/*            string command = "";
 
             while (command != "q" && command != "quit")
             {
@@ -57,7 +63,7 @@ namespace Mutate4l.Cli
                         }
                         break;
                 }
-            }
+            }*/
         }
 
         public static Result ParseAndProcessCommand(string command)

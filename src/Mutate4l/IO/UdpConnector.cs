@@ -93,5 +93,19 @@ namespace Mutate4l.IO
                 udpClient.Send(message, message.Length, "localhost", SendPort);
             }
         }
+
+        public static string WaitForData()
+        {
+            byte[] result;
+            var endPoint = new IPEndPoint(IPAddress.Any, ReceivePort);
+
+            using (var udpClient = new UdpClient(ReceivePort))
+            {
+//                udpClient.Send(message, message.Length, "localhost", SendPort);
+                result = udpClient.Receive(ref endPoint);
+            }
+            string data = Encoding.ASCII.GetString(result);
+            return data;
+        }
     }
 }

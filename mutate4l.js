@@ -19,7 +19,7 @@ function getClipData(liveObject) {
     var clipLength = liveObject.get('length');
     var looping = liveObject.get('looping');
     var data = liveObject.call("get_notes", loopStart, 0, clipLength, 128);
-    result += clipLength + " " + looping + " ";
+    var result = clipLength + " " + looping + " ";
     for (var i = 2, len = data.length - 1; i < len; i += 6) {
         if (data[i + 5 /* muted */] === 1) {
             continue;
@@ -239,9 +239,18 @@ function expandFormula(formula, ownClipData) {
         expandedFormulaParts = [];
 
     if (formula.length < 5) return;
-    if (formula[0] == "=") formula = formula.substring(1);
 
-    formula = formula.toLowerCase();
+//    if (formula[0] == "=") formula = formula.substring(1);
+    var formulaStartIndex = formula.indexOf("=");
+    var formulaStopIndex = formula.indexOf(";");
+    if (formulaStartIndex == -1) return; // no valid formula
+
+    if (formulaStopIndex >= 0) {
+        formula = formula.substring(formulaStartIndex, formulaStopIndex).toLowerCase();
+    } else {
+        formula = formula.substring(formulaStartIndex).toLowerCase();
+    }
+    
     var parts = formula.split(" ");
     for (var i = 0; i < parts.length; i++) { 
         var result = clipRefTester.test(parts[i]); 
