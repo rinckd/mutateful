@@ -13,68 +13,27 @@ namespace Mutate4l
     {
         public static Result ProcessChainedCommand(ChainedCommand chainedCommand)
         {
-            List<Clip> sourceClips = new List<Clip>();
-            List<Clip> targetClips = new List<Clip>();
-
-            // call out to OSC-layer to fetch actual data needed to process the command
-            foreach (Tuple<int, int> clipReference in chainedCommand.SourceClips)
+            Clip[] sourceClips = chainedCommand.SourceClips.Where(c => c.Notes.Count > 0).ToArray();
+            if (sourceClips.Length < 1)
             {
-                Clip clip = null;
-                if (clipReference.Item1 == -1 && clipReference.Item2 == -1)
-                {
-                    clip = UdpConnector.GetSelectedClip();
-                }
-                else
-                {
-                    clip = UdpConnector.GetClip(clipReference.Item1, clipReference.Item2);
-                }
-                if (clip == null)
-                {
-                    return new Result("Source clip was empty");
-                }
-                sourceClips.Add(clip);
+                return new Result("Clips are empty - aborting.");
             }
 
-            sourceClips = sourceClips.Where(c => c.Notes.Count > 0).ToList();
-            if (sourceClips.Count < 1)
-            {
-                return new Result("No source clips specified, or only empty clip(s) specified.");
-            }
-
-            Clip[] currentSourceClips = sourceClips.ToArray();
+            Clip[] currentSourceClips = sourceClips;
             ProcessResultArray<Clip> resultContainer = new ProcessResultArray<Clip>("No commands specified");
             foreach (var command in chainedCommand.Commands)
             {
                 resultContainer = ProcessCommand(command, currentSourceClips);
                 if (resultContainer.Success)
-                {
                     currentSourceClips = resultContainer.Result;
-                } else
-                {
+                else
                     break;
-                }
             }
             if (resultContainer.Success && resultContainer.Result.Length > 0)
             {
-                // destination clip: if destination is specified, replace dest with created clip. If destination is not specified, created clips are added in new scenes after last specified source clip.
-                if (chainedCommand.TargetClips.Count > 0)
-                {
-                    var targetClip = chainedCommand.TargetClips[0];
-                    if (targetClip.Item1 == -1 && targetClip.Item2 == -1)
-                    {
-                        UdpConnector.SetSelectedClip(resultContainer.Result[0]);
-                    }
-                    else
-                    {
-                        UdpConnector.SetClips(targetClip.Item1, targetClip.Item2, resultContainer.Result);
-                    }
-                }
-                else
-                {
-                    // seems to be a bug here. subsequent fetching of clip contents from clips set this way return no content.
-                    var lastSourceClip = chainedCommand.SourceClips[chainedCommand.SourceClips.Count - 1];
-                    UdpConnector.SetClips(lastSourceClip.Item1, lastSourceClip.Item2, resultContainer.Result);
-                }
+                var targetClip = chainedCommand.TargetClips[0]; // only one target clip is supported
+                if (targetClip.Item1 == -1 && targetClip.Item2 == -1)
+                    UdpConnector.SetClipById(chainedCommand.TargetId, resultContainer.Result[0]);
             }
             else
             {

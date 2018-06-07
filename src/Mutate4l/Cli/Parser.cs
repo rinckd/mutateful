@@ -4,6 +4,7 @@ using System.Text;
 using System.Linq;
 using Mutate4l.Dto;
 using Mutate4l.IO;
+using Mutate4l.Utility;
 
 namespace Mutate4l.Cli
 {
@@ -26,6 +27,7 @@ namespace Mutate4l.Cli
             return new Tuple<int, int>(x, y);
         }
 
+        /*
         public static ProcessResult<ChainedCommand> ParseTokensToChainedCommand(IEnumerable<Token> tokens)
         {
             Token[] tokenList = tokens.ToArray();
@@ -77,6 +79,54 @@ namespace Mutate4l.Cli
                 Commands = commands
             };
             return new ProcessResult<ChainedCommand>(chainedCommand);
+        }*/
+
+        public static ProcessResult<ChainedCommand> ParseFormulaToChainedCommand(string formula)
+        {
+            int index = formula.IndexOf('{') + 1;
+            string targetId = formula.Substring(index, formula.IndexOf('}') - index);
+            var splitFormula = formula.Split(' ');
+            var sourceClips = splitFormula.Where(x => x.StartsWith('[') && x.EndsWith(']')).Select(x => IOUtilities.StringToClip(x.TrimStart('[').TrimEnd(']'))).ToArray();
+            string command = string.Join(' ', splitFormula.Skip(sourceClips.Length + 1 /* id */).ToArray());
+
+            var lexer = new Lexer(command);
+            Token[] commandTokens = lexer.GetTokens().ToArray();
+            var commandTokensLists = new List<List<Token>>();
+            var activeCommandTokenList = new List<Token>();
+
+            foreach (var token in commandTokens)
+            {
+                if (token.IsCommand)
+                {
+                    if (activeCommandTokenList.Count == 0)
+                    {
+                        activeCommandTokenList.Add(token);
+                    }
+                    else
+                    {
+                        commandTokensLists.Add(activeCommandTokenList);
+                        activeCommandTokenList = new List<Token> { token };
+                    }
+                }
+                else
+                {
+                    activeCommandTokenList.Add(token);
+                }
+            }
+            commandTokensLists.Add(activeCommandTokenList); // add last command token list
+            var commands = new List<Command>();
+            foreach (var commandTokensList in commandTokensLists)
+            {
+                commands.Add(ParseTokensToCommand(commandTokensList));
+            }
+
+            var chainedCommand = new ChainedCommand
+            {
+                SourceClips = sourceClips,
+                TargetId = targetId,
+                Commands = commands
+            };
+            return new ProcessResult<ChainedCommand>(new ChainedCommand());
         }
 
         public static Command ParseTokensToCommand(IEnumerable<Token> tokens)

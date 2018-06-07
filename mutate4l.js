@@ -5,13 +5,27 @@ liveObservers = [];
 liveObserversById = [];
 
 function getClip(trackNo, clipNo) {
-    var liveObject = new LiveAPI("live_set tracks " + trackNo + " clip_slots " + clipNo + " clip"), result = "";
+    post("getting track " + trackNo + " clip " + clipNo);
+    var liveObject = new LiveAPI("live_set tracks " + trackNo);
+
     if (!liveObject) {
         post('Invalid liveObject, exiting...');
         return;
     }
-    var result = getClipData(liveObject);
-    outlet(0, ['/mu4l/clip/get', result]);
+    if (liveObject.get('has_audio_input') > 0 && liveObject.get('has_midi_input') < 1) {
+        post('Not a midi track!');
+        return;
+    }
+    liveObject.goto("live_set tracks " + trackNo + " clip_slots " + clipNo);
+
+    if (liveObject.get('has_clip') < 1) {
+        post("No clip present at track: " + trackNo + 1 + " clip: " + clipNo + 1);
+        return;
+    }
+    liveObject.goto("live_set tracks " + trackNo + " clip_slots " + clipNo + " clip");
+
+    return getClipData(liveObject);
+    //outlet(0, ['/mu4l/clip/get', result]);
 }
 
 function getClipData(liveObject) {
@@ -26,6 +40,7 @@ function getClipData(liveObject) {
         }
         result += data[i + 1 /* pitch */] + " " + data[i + 2 /* start */] + " " + data[i + 3 /* duration */] + " " + data[i + 4 /* velocity */] + " ";
     }
+    post(result);
     return result.slice(0, result.length - 1);  // remove last space
 }
 
@@ -164,8 +179,12 @@ ObservableCallback.prototype.getCallback = function() {
                 var name = self.api.get("name") || [""];
                 var thisClipData = getClipData(self.api);
                 var data = expandFormula(name[0], thisClipData);
-                data = "{" + self.id + "} " + data;
-                outlet(0, ["/mu4l/formula/process", data]);
+                if (data) {
+                    data = "{" + self.id + "} " + data;
+                    outlet(0, ["/mu4l/formula/process", data]);
+                } else {
+                    post("Unable to expand formula - check syntax");
+                }
             }
         }
     };
@@ -206,7 +225,7 @@ function attachClipObservers() {
                     if (formulaStartIndex >= 0) {
 //                        post("Attaching observers");
                         formulaStopIndex = clipName[0].indexOf(";");
-                        post(clipName[0].substring(formulaStartIndex, (formulaStopIndex > formulaStartIndex ? formulaStopIndex : -1)));
+                        //post(clipName[0].substring(formulaStartIndex, (formulaStopIndex > formulaStartIndex ? formulaStopIndex : -1)));
                         nameCallback = new ObservableCallback(liveObject.id);
                         notesCallback = new ObservableCallback(liveObject.id);
                         liveObservers[liveObservers.length] = {
@@ -232,6 +251,7 @@ function attachClipObservers() {
 }
 
 function expandFormula(formula, ownClipData) {
+    // todo: support for specifying target clip
     var clipRefTester = /^([a-z]+\d+)$|^(\*)$/,
         clipRefsFound = false,
         clipRefs = [],
@@ -246,9 +266,9 @@ function expandFormula(formula, ownClipData) {
     if (formulaStartIndex == -1) return; // no valid formula
 
     if (formulaStopIndex >= 0) {
-        formula = formula.substring(formulaStartIndex, formulaStopIndex).toLowerCase();
+        formula = formula.substring(formulaStartIndex + 1, formulaStopIndex).toLowerCase();
     } else {
-        formula = formula.substring(formulaStartIndex).toLowerCase();
+        formula = formula.substring(formulaStartIndex + 1).toLowerCase();
     }
     
     var parts = formula.split(" ");
@@ -267,7 +287,11 @@ function expandFormula(formula, ownClipData) {
             expandedFormulaParts.push("[" + ownClipData + "]");
         } else {
             var target = resolveClipReference(clipRefs[i]);
-            expandedFormulaParts.push("[" + getClip(target.x, target.y) + "]");
+            var clipData = getClip(target.x, target.y);
+            if (!clipData) {
+                return;
+            }
+            expandedFormulaParts.push("[" + clipData + "]");
         }
     }
 

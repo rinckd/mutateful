@@ -68,8 +68,7 @@ namespace Mutate4l.Cli
 
         public static Result ParseAndProcessCommand(string command)
         {
-            var lexer = new Lexer(command);
-            var structuredCommand = Parser.ParseTokensToChainedCommand(lexer.GetTokens());
+            var structuredCommand = Parser.ParseFormulaToChainedCommand(command);
             if (!structuredCommand.Success)
                 return new Result(structuredCommand.ErrorMessage);
 
