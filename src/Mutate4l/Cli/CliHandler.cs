@@ -13,6 +13,9 @@ namespace Mutate4l.Cli
             {
                 var data = UdpConnector.WaitForData();
                 Console.WriteLine($"Received data: {data}");
+                var result = ParseAndProcessCommand(data);
+                if (!result.Success)
+                    Console.WriteLine(result.ErrorMessage);
             }
             
 /*            string command = "";

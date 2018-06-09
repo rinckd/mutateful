@@ -3,8 +3,6 @@ using Mutate4l.Commands;
 using Mutate4l.Dto;
 using Mutate4l.IO;
 using Mutate4l.Options;
-using System;
-using System.Collections.Generic;
 using System.Linq;
 
 namespace Mutate4l
@@ -32,13 +30,11 @@ namespace Mutate4l
             if (resultContainer.Success && resultContainer.Result.Length > 0)
             {
                 var targetClip = chainedCommand.TargetClips[0]; // only one target clip is supported
-                if (targetClip.Item1 == -1 && targetClip.Item2 == -1)
-                    UdpConnector.SetClipById(chainedCommand.TargetId, resultContainer.Result[0]);
+                UdpConnector.SetClipById(chainedCommand.TargetId, resultContainer.Result[0]);
             }
             else
-            {
                 return new Result("No clips affected");
-            }
+
             return new Result(resultContainer.Success, resultContainer.ErrorMessage);
         }
 

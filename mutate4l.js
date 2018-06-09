@@ -243,15 +243,16 @@ function attachClipObservers() {
             }
         }
     }
-    /*
+    
+    
     var highlightedClipCallback = new ObservableCallback(-1);
-    var highlightedLiveObject = new LiveAPI(highlightedClipCallback.getCallback().highlightedClipCallback, "live_set view highlighted_clip_slot");
+    var highlightedLiveObject = new LiveAPI(highlightedClipCallback.getCallback().callback, "live_set view highlighted_clip_slot clip");
     highlightedClipCallback.setLiveApi(highlightedLiveObject);
-    highlightedLiveObject.property = "name";*/
+    highlightedClipCallback.id = highlightedLiveObject.id;
+    highlightedLiveObject.property = "name";
 }
 
 function expandFormula(formula, ownClipData) {
-    // todo: support for specifying target clip
     var clipRefTester = /^([a-z]+\d+)$|^(\*)$/,
         clipRefsFound = false,
         clipRefs = [],
@@ -260,7 +261,6 @@ function expandFormula(formula, ownClipData) {
 
     if (formula.length < 5) return;
 
-//    if (formula[0] == "=") formula = formula.substring(1);
     var formulaStartIndex = formula.indexOf("=");
     var formulaStopIndex = formula.indexOf(";");
     if (formulaStartIndex == -1) return; // no valid formula
@@ -283,19 +283,19 @@ function expandFormula(formula, ownClipData) {
     }
 
     for (i = 0; i < clipRefs.length; i++) {
-        if (clipRefs[i] == "*") {
+/*        if (clipRefs[i] == "*") {
             expandedFormulaParts.push("[" + ownClipData + "]");
-        } else {
+        } else {*/
             var target = resolveClipReference(clipRefs[i]);
             var clipData = getClip(target.x, target.y);
             if (!clipData) {
                 return;
             }
             expandedFormulaParts.push("[" + clipData + "]");
-        }
+//        }
     }
 
-    if (clipRefs.indexOf("*") == -1) expandedFormulaParts.push("[" + ownClipData + "]");
+    //if (clipRefs.indexOf("*") == -1) expandedFormulaParts.push("[" + ownClipData + "]");
 
     for (i = 0; i < parts.length; i++) {
         if (!clipRefTester.test(parts[i])) {
