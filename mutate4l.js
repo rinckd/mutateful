@@ -1,8 +1,90 @@
-outlets = 1;
-inlets = 1;
+outlets = 2;
+inlets = 2;
 
-liveObservers = [];
-liveObserversById = [];
+function ObservableCallback(id) {
+//    this.track = track;
+//    this.clip = clip;
+    this.id = id;
+    this.name = "<not set>";
+}
+
+ObservableCallback.prototype.getCallback = function() {
+    var self = this;
+    return {
+        /*callback: function(arg) {
+            post("cb called with " + arg + " on id: " + self.id + "\r\n");
+            if (self.api !== undefined) {
+                var name = self.api.get("name") || [""];
+                //var thisClipData = getClipData(self.api);
+                var data = expandFormula(name[0]);
+                if (data) {
+                    data = "{" + self.id + "} " + data;
+                    outlet(0, ["/mu4l/formula/process", data]);
+                } else {
+                    post("Unable to expand formula - check syntax");
+                }
+            }
+        },*/
+        callback: function(arg) {
+            var name = "";
+            if (arg.indexOf("name") >= 0) {
+                name = arg[arg.indexOf("name") + 1];
+                name = name.substr(1, name.length - 2);
+            }
+//            post(self.name === name ? "like" : "ulike");
+            if (name.length > 0 && self.name !== name) {
+                //post("hei " + self.name + " " + name + "\r\n");
+                post("Name changed! cb called with " + arg + " on id: " + self.id + "\r\n");
+                self.name = name;
+            }
+            // if contains formula or id exists in watchedClips (or similar) and update any clips contained here. Example:
+/*
+            id 1 - a1
+            id 2 - a2
+            id 3 - =a1 a2 interleave
+
+            watchedClips: [1]:[3], [2]:[3]
+            On update of referenced clips: trigger update of formula, but only if the clip is still referenced. Otherwise, delete the mapping.
+*/
+        }
+    };
+}
+
+ObservableCallback.prototype.setLiveApi = function(api) {
+    this.api = api;
+}
+
+selectedClipObserver = new LiveAPI(onSelectedClipChanged, "live_set view");
+selectedClipObserver.property = "detail_clip";
+nameCallback = new ObservableCallback(-1);
+clipNameObserver = new LiveAPI(nameCallback.getCallback().callback, "live_set view highlighted_clip_slot");
+nameCallback.setLiveApi(clipNameObserver);
+
+clipNotesObserver = [];
+notesCallback = new ObservableCallback(-1);
+watchedClips = [];
+
+function msg_int(val) {
+    if (inlet === 1 && val > 0) { // piped back from js-object to avoid problems with push/popcontextframe
+        var id = "id " + val;
+        clipNameObserver.property = "";
+        clipNameObserver = null;
+        clipNameObserver = new LiveAPI(nameCallback.getCallback().callback, id);
+        nameCallback.id = clipNameObserver.id;
+        nameCallback.name = clipNameObserver.get("name")[0];
+        clipNameObserver.property = "name";
+    }
+
+}
+
+function onSelectedClipChanged(args) {
+    if (!args || args.length === 0) return;
+    var id = args[args.length - 1];
+    if (id === 0) return; // return on empty clip
+    post("Selected clip changed, id: " + id + "\r\n");
+    // update watchers
+    outlet(1, id); // Max does not support creating LiveAPI objects in custom callbacks, so this is handled by piping data back into inlet 2 (see msg_int function above)
+}
 
 function getClip(trackNo, clipNo) {
     post("getting track " + trackNo + " clip " + clipNo);
@@ -164,35 +246,7 @@ function getSelectedClip() {
     outlet(0, ['/mu4l/selectedclip/get', ["!"]]);
 }
 
-function ObservableCallback(id) {
-//    this.track = track;
-//    this.clip = clip;
-    this.id = id;
-}
 
-ObservableCallback.prototype.getCallback = function() {
-    var self = this;
-    return {
-        callback: function(arg) {
-            post("cb called with " + arg + " on id: " + self.id + "\r\n");
-            if (self.api !== undefined) {
-                var name = self.api.get("name") || [""];
-                var thisClipData = getClipData(self.api);
-                var data = expandFormula(name[0], thisClipData);
-                if (data) {
-                    data = "{" + self.id + "} " + data;
-                    outlet(0, ["/mu4l/formula/process", data]);
-                } else {
-                    post("Unable to expand formula - check syntax");
-                }
-            }
-        }
-    };
-}
-
-ObservableCallback.prototype.setLiveApi = function(api) {
-    this.api = api;
-}
 
 function attachClipObservers() {
     var liveObject = new LiveAPI("live_set"),
@@ -204,12 +258,12 @@ function attachClipObservers() {
         nameCallback,
         notesCallback;
 
-    for (var i = 0; i < liveObservers.length; i++) {
+/*    for (var i = 0; i < liveObservers.length; i++) {
         liveObservers[i].nameObserver.property = "";
         liveObservers[i].contentObserver.property = "";
     }
     liveObservers = [];
-
+*/
     for (var i = 0; i < numTracks; i++) {
         liveObject.goto("live_set tracks " + i);
         if (liveObject.get('has_audio_input') < 1 && liveObject.get('has_midi_input') > 0) {
@@ -219,13 +273,16 @@ function attachClipObservers() {
                     liveObject.goto("live_set tracks " + i + " clip_slots " + s + " clip");
                     clipName = liveObject.get("name");
                     if (!clipName.length) clipName = [""];
-//                    post("name: " + clipName + "\r\n");
-                    formulaStartIndex = clipName[0].indexOf("=");
-//                    post(clipName.indexOf("a1"));
-                    if (formulaStartIndex >= 0) {
-//                        post("Attaching observers");
-                        formulaStopIndex = clipName[0].indexOf(";");
-                        //post(clipName[0].substring(formulaStartIndex, (formulaStopIndex > formulaStartIndex ? formulaStopIndex : -1)));
+                    if (clipName[0].indexOf("=") >= 0) {
+                        var expandedFormula = expandFormula(clipName[0]);
+                        if (expandedFormula) {
+                            expandedFormula = "{" + liveObject.id + "} " + expandedFormula;
+                            outlet(0, ["/mu4l/formula/process", expandedFormula]);
+                        } else {
+                            post("Unable to expand formula for track " + (i + 1) + " clip " + (s + 1) + " - check syntax");
+                        }
+
+/*                        
                         nameCallback = new ObservableCallback(liveObject.id);
                         notesCallback = new ObservableCallback(liveObject.id);
                         liveObservers[liveObservers.length] = {
@@ -236,23 +293,32 @@ function attachClipObservers() {
                         liveObservers[liveObservers.length - 1].contentObserver.property = "notes";
                         nameCallback.setLiveApi(liveObservers[liveObservers.length - 1].nameObserver);
                         notesCallback.setLiveApi(liveObservers[liveObservers.length - 1].contentObserver);
+*/
                     }
-
-                    //liveObserversById[liveObject.id + ""] = liveObservers[liveObservers.length - 1];
                 }
             }
         }
     }
-    
-    
-    var highlightedClipCallback = new ObservableCallback(-1);
+
+    //nameCallback = new ObservableCallback(-1);
+  //  notesCallback = new ObservableCallback(-1);
+    /*if (selectedClipObserver !== null) {
+        selectedClipObserver.property = "";
+        selectedClipObserver = null;
+    }*/
+
+//    liveObservers[liveObservers.length - 1].contentObserver.property = "notes";
+//    notesCallback.setLiveApi(liveObservers[liveObservers.length - 1].contentObserver);
+//    notesCallback.id = liveObservers[liveObservers.length - 1].contentObserver.id;
+
+/*    var highlightedClipCallback = new ObservableCallback(-1);
     var highlightedLiveObject = new LiveAPI(highlightedClipCallback.getCallback().callback, "live_set view highlighted_clip_slot clip");
     highlightedClipCallback.setLiveApi(highlightedLiveObject);
     highlightedClipCallback.id = highlightedLiveObject.id;
-    highlightedLiveObject.property = "name";
+    highlightedLiveObject.property = "name";*/
 }
 
-function expandFormula(formula, ownClipData) {
+function expandFormula(formula/*, ownClipData*/) {
     var clipRefTester = /^([a-z]+\d+)$|^(\*)$/,
         clipRefsFound = false,
         clipRefs = [],
