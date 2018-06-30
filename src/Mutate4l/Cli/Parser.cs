@@ -85,9 +85,12 @@ namespace Mutate4l.Cli
         {
             int index = formula.IndexOf('{') + 1;
             string targetId = formula.Substring(index, formula.IndexOf('}') - index);
-            var splitFormula = formula.Split(' ');
-            var sourceClips = splitFormula.Where(x => x.StartsWith('[') && x.EndsWith(']')).Select(x => IOUtilities.StringToClip(x.TrimStart('[').TrimEnd(']'))).ToArray();
-            string command = string.Join(' ', splitFormula.Skip(sourceClips.Length + 1 /* id */).ToArray());
+            var sourceClips = formula
+                .Substring(formula.IndexOf('['), formula.LastIndexOf(']') - formula.IndexOf('['))
+                .Split(']')
+                .Select(x => IOUtilities.StringToClip(x.Trim().TrimStart('[')))
+                .ToArray();
+            string command = formula.Substring(formula.LastIndexOf(']') + 1);
 
             var lexer = new Lexer(command);
             Token[] commandTokens = lexer.GetTokens().ToArray();
@@ -135,24 +138,25 @@ namespace Mutate4l.Cli
             
             List<Token> tokensAsList = tokens.ToList();
             command.Id = tokensAsList[0].Type;
-            var i = 1;
-            while (i < tokensAsList.Count)
+            var i = 0;
+            // todo: rewrite as destination and clip reference is no longer a thing here
+            while (++i < tokensAsList.Count)
             {
                 if (tokensAsList[i].Type > TokenType._OptionsBegin && tokensAsList[i].Type < TokenType._OptionsEnd)
                 {
                     var type = tokensAsList[i].Type;
                     var values = new List<Token>();
-                    i++;
+                    //i++;
                     while (i < tokensAsList.Count && ((tokensAsList[i].Type > TokenType._ValuesBegin && tokensAsList[i].Type < TokenType._ValuesEnd) 
                         || (tokensAsList[i].Type > TokenType._EnumValuesBegin && tokensAsList[i].Type < TokenType._EnumValuesEnd)))
                     {
                         values.Add(tokensAsList[i++]);
                     }
                     command.Options.Add(type, values);
-                }
-                else if (tokensAsList[i].Type == TokenType.Destination)
+                }/*
+                else if (tokensAsList[i].Type == TokenType.Destination)// todo: remove - no longer valid
                 {
-                    i++;
+                    //i++;
                     while (i < tokensAsList.Count && tokensAsList[i].Type == TokenType.ClipReference)
                     {
                         command.TargetClips.Add(ResolveClipReference(tokensAsList[i++].Value));
@@ -161,7 +165,7 @@ namespace Mutate4l.Cli
                 while (i < tokensAsList.Count && tokensAsList[i].Type == TokenType.ClipReference)
                 {
                     command.SourceClips.Add(ResolveClipReference(tokensAsList[i++].Value));
-                }
+                }*/
             }
             return command;
         }
