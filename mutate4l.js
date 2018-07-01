@@ -189,6 +189,27 @@ function setClip(trackNo, clipNo, dataString) {
     liveObject.call('done');
     liveObject.set('looping', looping);
 }
+
+function setClipById(id, dummy, dataString) {
+    post("hello from setClipById");
+    var data = dataString.split(' ');
+    if (data.length < 3)
+        return;
+    var liveObject = new LiveAPI("id " + id);
+    var clipLength = data[0];
+    var looping = data[1];
+    liveObject.set('loop_start', '0');
+    liveObject.set('loop_end', clipLength);
+    liveObject.call('select_all_notes');
+    liveObject.call('replace_selected_notes');
+    liveObject.call('notes', (data.length - 2) / 4);
+    for (var c = 2; c < data.length; c += 4) {
+        liveObject.call('note', data[c], data[c + 1], data[c + 2], data[c + 3], 0);
+    }
+    liveObject.call('done');
+    liveObject.set('looping', looping);
+}
+
 function setSelectedClip(dummyTrackNo, dummyClipNo, dataString) {
     post("setSelectedClip: " + dataString);
     var data = dataString.split(' ');

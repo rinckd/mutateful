@@ -83,6 +83,9 @@ namespace Mutate4l.Cli
 
         public static ProcessResult<ChainedCommand> ParseFormulaToChainedCommand(string formula)
         {
+            var valid = new char[] { '{', '[', ']', '}' }.All(c => formula.IndexOf(c) >= 0);
+            if (!valid) return new ProcessResult<ChainedCommand>($"Invalid formula: {formula}");
+
             int index = formula.IndexOf('{') + 1;
             string targetId = formula.Substring(index, formula.IndexOf('}') - index);
             var sourceClips = formula
@@ -117,11 +120,7 @@ namespace Mutate4l.Cli
                 }
             }
             commandTokensLists.Add(activeCommandTokenList); // add last command token list
-            var commands = new List<Command>();
-            foreach (var commandTokensList in commandTokensLists)
-            {
-                commands.Add(ParseTokensToCommand(commandTokensList));
-            }
+            var commands = commandTokensLists.Select(x => ParseTokensToCommand(x)).ToList();
 
             var chainedCommand = new ChainedCommand
             {
@@ -129,7 +128,7 @@ namespace Mutate4l.Cli
                 TargetId = targetId,
                 Commands = commands
             };
-            return new ProcessResult<ChainedCommand>(new ChainedCommand());
+            return new ProcessResult<ChainedCommand>(chainedCommand);
         }
 
         public static Command ParseTokensToCommand(IEnumerable<Token> tokens)
@@ -139,33 +138,20 @@ namespace Mutate4l.Cli
             List<Token> tokensAsList = tokens.ToList();
             command.Id = tokensAsList[0].Type;
             var i = 0;
-            // todo: rewrite as destination and clip reference is no longer a thing here
             while (++i < tokensAsList.Count)
             {
                 if (tokensAsList[i].Type > TokenType._OptionsBegin && tokensAsList[i].Type < TokenType._OptionsEnd)
                 {
                     var type = tokensAsList[i].Type;
                     var values = new List<Token>();
-                    //i++;
+
                     while (i < tokensAsList.Count && ((tokensAsList[i].Type > TokenType._ValuesBegin && tokensAsList[i].Type < TokenType._ValuesEnd) 
                         || (tokensAsList[i].Type > TokenType._EnumValuesBegin && tokensAsList[i].Type < TokenType._EnumValuesEnd)))
                     {
                         values.Add(tokensAsList[i++]);
                     }
                     command.Options.Add(type, values);
-                }/*
-                else if (tokensAsList[i].Type == TokenType.Destination)// todo: remove - no longer valid
-                {
-                    //i++;
-                    while (i < tokensAsList.Count && tokensAsList[i].Type == TokenType.ClipReference)
-                    {
-                        command.TargetClips.Add(ResolveClipReference(tokensAsList[i++].Value));
-                    }
                 }
-                while (i < tokensAsList.Count && tokensAsList[i].Type == TokenType.ClipReference)
-                {
-                    command.SourceClips.Add(ResolveClipReference(tokensAsList[i++].Value));
-                }*/
             }
             return command;
         }

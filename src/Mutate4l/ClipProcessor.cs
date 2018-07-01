@@ -29,7 +29,6 @@ namespace Mutate4l
             }
             if (resultContainer.Success && resultContainer.Result.Length > 0)
             {
-                var targetClip = chainedCommand.TargetClips[0]; // only one target clip is supported
                 UdpConnector.SetClipById(chainedCommand.TargetId, resultContainer.Result[0]);
             }
             else
