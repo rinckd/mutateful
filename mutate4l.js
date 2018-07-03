@@ -1,3 +1,4 @@
+// v 3
 outlets = 3;
 inlets = 3;
 
@@ -13,8 +14,12 @@ ObservableCallback.prototype.getCallback = function() {
             var name = "";
             if (arg.indexOf("name") >= 0) {
                 name = arg[arg.indexOf("name") + 1];
-                name = name.substr(1, name.length - 2);
+                // quirk: name is contained in "" if it contains spaces, otherwise not
+                if (name.indexOf("\"") === 0) {
+                    name = name.substr(1, name.length - 2);
+                }
             }
+            post("name " + name + " self.name " + self.name + "\r\n");
             if (name.length > 0 && self.name !== name) {
                 post("Name changed! cb called with " + arg + " on id: " + self.id + "\r\n");
                 self.name = name;
@@ -33,14 +38,11 @@ selectedClipObserver.property = "detail_clip";
 nameCallback = new ObservableCallback(-1);
 var clipNameObserver = {};
 var clipContentsObserver = {};
-//nameCallback.setLiveApi(clipNameObserver);
 
-clipNotesObserver = [];
 notesCallback = new ObservableCallback(-1);
 watchedClips = [];
 
 function msg_int(val) {
-    post("msg_int called");
     if (inlet === 1 && val > 0) { // piped back from js-object to avoid problems with push/popcontextframe
         var id = "id " + val;
         clipNameObserver.property = "";
@@ -49,12 +51,12 @@ function msg_int(val) {
         nameCallback.id = clipNameObserver.id;
         nameCallback.name = getClipName(clipNameObserver);
         clipNameObserver.property = "name";
+        nameCallback.setLiveApi(clipNameObserver);
     } else if (inlet === 2 && val > 0) {
         if (watchedClips[val] !== undefined && watchedClips[val].length !== 0) {
             var currentlyWatchedClips = watchedClips[val];
             var indexesToRemove = [];
             var updatedWatchedClips = [];
-            post(currentlyWatchedClips);
 
             for (var i = 0; i < currentlyWatchedClips.length; i++) {
                 var id = currentlyWatchedClips[i];
@@ -63,7 +65,7 @@ function msg_int(val) {
                 var referredIds = formulaToReferredIds(formula);
                 post("attempting to find id " + val + " in referred ids: " + referredIds + " extra stuff " + referredIds.length + "\r\n");
                 if (referredIds.indexOf(val) >= 0) {
-                    post("found current clip in referring formula - all is well");
+                    post("found current clip in referring formula - all is well\r\n");
 
                     var expandedFormula = expandFormula(formula, id);
                     if (expandedFormula) {
@@ -85,7 +87,7 @@ function msg_int(val) {
                         updatedWatchedClips.push(currentlyWatchedClips[i]);
                     }
                 }
-                watchedClips[self.id] = updatedWatchedClips;
+                watchedClips[val] = updatedWatchedClips;
             }
         }
     }
@@ -120,7 +122,7 @@ function getClip(trackNo, clipNo) {
 }
 
 function getLiveObjectAtClip(trackNo, clipNo) {
-    post("getting track " + trackNo + " clip " + clipNo);
+    post("getting track " + trackNo + " clip " + clipNo + "\r\n");
     var liveObject = new LiveAPI("live_set tracks " + trackNo);
 
     if (!liveObject) {
@@ -154,7 +156,7 @@ function getClipData(liveObject) {
         }
         result += data[i + 1 /* pitch */] + " " + data[i + 2 /* start */] + " " + data[i + 3 /* duration */] + " " + data[i + 4 /* velocity */] + " ";
     }
-    post(result);
+//    post(result);
     return result.slice(0, result.length - 1);  // remove last space
 }
 
