@@ -5,9 +5,9 @@ inlets = 3;
 // global vars
 var debuglogging = true;
 var selectedClipObserver = {};
-var nameCallback = new ObservableCallback(-1);
 var clipNameObserver = {};
 var clipContentsObserver = {};
+var nameCallback = new ObservableCallback(-1);
 var notesCallback = new ObservableCallback(-1);
 var watchedClips = [];
 
@@ -24,7 +24,7 @@ function ObservableCallback(id) {
 ObservableCallback.prototype.getCallback = function() {
     var self = this;
     return {
-        callback: function(arg) {
+        onNameChanged: function(arg) {
             var name = "";
             if (arg.indexOf("name") >= 0) {
                 name = arg[arg.indexOf("name") + 1];
@@ -37,8 +37,14 @@ ObservableCallback.prototype.getCallback = function() {
             if (name.length > 0 && self.name !== name) {
                 debuglog("Name changed! cb called with " + arg + " on id: " + self.id);
                 self.name = name;
-                debuglog("outletting to onSelectedClipRenamed: " + self.id + "," + name);
-                outlet(2, ["onSelectedClipRenamed", parseInt(self.id, 10), name]);
+                debuglog("outletting to onSelectedClipRenamedOrChanged: " + self.id + "," + name);
+                outlet(2, ["onSelectedClipRenamedOrChanged", parseInt(self.id, 10), name]);
+            }
+        },
+        onNotesChanged: function(arg) {
+            if (arg.indexOf("notes") >= 0) {
+                debuglog("Notes changed!");
+                outlet(2, ["onSelectedClipRenamedOrChanged", parseInt(self.id, 10)]);
             }
         }
     };
@@ -53,15 +59,15 @@ function onInit() {
     debuglog("setting up selectedClipObserver");
     selectedClipObserver = new LiveAPI(onSelectedClipChanged, "live_set view");
     selectedClipObserver.property = "detail_clip";
+    processAllClips();
 }
 
-function onSelectedClipRenamed(arg1, arg2) {
-    debuglog("onSelectedClipRenamed " + arg1 + " " + arg2);
+function onSelectedClipRenamedOrChanged(arg1, arg2) {
+    debuglog("onSelectedClipRenamedOrChanged " + arg1 + " " + arg2);
     var clipId = arg1;
     var name = arg2;
 
     if (watchedClips[clipId] !== undefined && watchedClips[clipId].length !== 0) {
-        debuglog("...from inlet 2");
         var currentlyWatchedClips = watchedClips[clipId];
         var indexesToRemove = [];
         var updatedWatchedClips = [];
@@ -114,14 +120,23 @@ function onSelectedClipRenamed(arg1, arg2) {
 }
 
 function updateObserversOnClipChange(rawId) {
+    debuglog("Updating observers...");
     var id = "id " + rawId;
     clipNameObserver.property = "";
     clipNameObserver = null;
-    clipNameObserver = new LiveAPI(nameCallback.getCallback().callback, id);
+    clipNameObserver = new LiveAPI(nameCallback.getCallback().onNameChanged, id);
     nameCallback.id = clipNameObserver.id;
     nameCallback.name = getClipName(clipNameObserver);
     clipNameObserver.property = "name";
     nameCallback.setLiveApi(clipNameObserver);
+    
+    clipContentsObserver.property = "";
+    clipContentsObserver = null;
+    clipContentsObserver = new LiveAPI(notesCallback.getCallback().onNotesChanged, id);
+    notesCallback.id = clipContentsObserver.id;
+    notesCallback.name = getClipName(clipContentsObserver);
+    clipContentsObserver.property = "notes";
+    notesCallback.setLiveApi(clipContentsObserver);
 }
 
 function onSelectedClipChanged(args) {
@@ -326,21 +341,13 @@ function containsFormula(clipName) {
     return clipName.indexOf("=") >= 0;
 }
 
-function attachClipObservers() {
+function processAllClips() {
     var liveObject = new LiveAPI("live_set"),
         numScenes = liveObject.get('scenes').length / 2,
         numTracks = liveObject.get("tracks").length / 2,
         formulaStartIndex,
         clipName = "",
-        formulaStopIndex,
-        nameCallback,
-        notesCallback;
-/*
-    for (var i = 0; i < liveObservers.length; i++) {
-        liveObservers[i].nameObserver.property = "";
-        liveObservers[i].contentObserver.property = "";
-    }
-    liveObservers = [];*/
+        formulaStopIndex;
 
     for (var i = 0; i < numTracks; i++) {
         liveObject.goto("live_set tracks " + i);
@@ -358,40 +365,11 @@ function attachClipObservers() {
                         } else {
                             debuglog("Unable to expand formula for track " + (i + 1) + " clip " + (s + 1) + " - check syntax");
                         }
-
-                        /*
-                        nameCallback = new ObservableCallback(liveObject.id);
-                        notesCallback = new ObservableCallback(liveObject.id);
-                        liveObservers[liveObservers.length] = {
-                            nameObserver: new LiveAPI(nameCallback.getCallback().callback, liveObject.unquotedpath),
-                            contentObserver: new LiveAPI(notesCallback.getCallback().callback, liveObject.unquotedpath)
-                        };
-                        liveObservers[liveObservers.length - 1].nameObserver.property = "name";
-                        liveObservers[liveObservers.length - 1].contentObserver.property = "notes";
-                        nameCallback.setLiveApi(liveObservers[liveObservers.length - 1].nameObserver);
-                        notesCallback.setLiveApi(liveObservers[liveObservers.length - 1].contentObserver);*/
                     }
                 }
             }
         }
     }
-
-    //nameCallback = new ObservableCallback(-1);
-  //  notesCallback = new ObservableCallback(-1);
-    /*if (selectedClipObserver !== null) {
-        selectedClipObserver.property = "";
-        selectedClipObserver = null;
-    }*/
-
-//    liveObservers[liveObservers.length - 1].contentObserver.property = "notes";
-//    notesCallback.setLiveApi(liveObservers[liveObservers.length - 1].contentObserver);
-//    notesCallback.id = liveObservers[liveObservers.length - 1].contentObserver.id;
-
-/*    var highlightedClipCallback = new ObservableCallback(-1);
-    var highlightedLiveObject = new LiveAPI(highlightedClipCallback.getCallback().callback, "live_set view highlighted_clip_slot clip");
-    highlightedClipCallback.setLiveApi(highlightedLiveObject);
-    highlightedClipCallback.id = highlightedLiveObject.id;
-    highlightedLiveObject.property = "name";*/
 }
 
 function formulaToReferredIds(formula) {

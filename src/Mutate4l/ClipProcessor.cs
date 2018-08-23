@@ -43,28 +43,28 @@ namespace Mutate4l
             switch (command.Id)
             {
                 case TokenType.Interleave:
-                    resultContainer = Interleave.Apply(OptionParser.ParseOptions<InterleaveOptions>(command.Options), clips); 
+                    resultContainer = Interleave.Apply(OptionParser.ParseOptions<InterleaveOptions>(command), clips); 
                     break;
                 case TokenType.Constrain:
-                    resultContainer = Constrain.Apply(OptionParser.ParseOptions<ConstrainOptions>(command.Options), clips);
+                    resultContainer = Constrain.Apply(OptionParser.ParseOptions<ConstrainOptions>(command), clips);
                     break;
                 case TokenType.Slice:
-                    resultContainer = Slice.Apply(OptionParser.ParseOptions<SliceOptions>(command.Options), clips);
+                    resultContainer = Slice.Apply(OptionParser.ParseOptions<SliceOptions>(command), clips);
                     break;
                 case TokenType.Arpeggiate:
-                    resultContainer = Arpeggiate.Apply(OptionParser.ParseOptions<ArpeggiateOptions>(command.Options), clips);
+                    resultContainer = Arpeggiate.Apply(OptionParser.ParseOptions<ArpeggiateOptions>(command), clips);
                     break;
                 case TokenType.Monophonize:
                     resultContainer = Monophonize.Apply(clips);
                     break;
                 case TokenType.Ratchet:
-                    resultContainer = Ratchet.Apply(OptionParser.ParseOptions<RatchetOptions>(command.Options), clips);
+                    resultContainer = Ratchet.Apply(OptionParser.ParseOptions<RatchetOptions>(command), clips);
                     break;
                 case TokenType.Scan:
-                    resultContainer = Scan.Apply(OptionParser.ParseOptions<ScanOptions>(command.Options), clips);
+                    resultContainer = Scan.Apply(OptionParser.ParseOptions<ScanOptions>(command), clips);
                     break;
                 case TokenType.Filter:
-                    resultContainer = Filter.Apply(OptionParser.ParseOptions<FilterOptions>(command.Options), clips);
+                    resultContainer = Filter.Apply(OptionParser.ParseOptions<FilterOptions>(command), clips);
                     break;
                 default:
                     // todo: error here

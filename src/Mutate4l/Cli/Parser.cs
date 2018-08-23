@@ -152,6 +152,14 @@ namespace Mutate4l.Cli
                     }
                     command.Options.Add(type, values);
                 }
+                else 
+                {
+                    while (i < tokensAsList.Count && ((tokensAsList[i].Type > TokenType._ValuesBegin && tokensAsList[i].Type < TokenType._ValuesEnd)
+                        || (tokensAsList[i].Type > TokenType._EnumValuesBegin && tokensAsList[i].Type < TokenType._EnumValuesEnd))) {
+                        // If we don't get an option header but just one or more values, assume these are values for the default option
+                        command.DefaultOptionValues.Add(tokensAsList[i++]);
+                    }
+                }
             }
             return command;
         }
