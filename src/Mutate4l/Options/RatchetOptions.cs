@@ -9,8 +9,17 @@ namespace Mutate4l.Options
         EaseIn
     }
 
+    public enum RatchetMode
+    {
+        // whether ratcheting should be applied based on velocity or pitch in the control clip
+        Velocity,
+        Pitch
+    }
+
     public class RatchetOptions
     {
+        public RatchetMode Mode { get; set; } = RatchetMode.Velocity;
+
         [OptionInfo(min: 1, max: 20)]
         public int Min { get; set; } = 1;
 

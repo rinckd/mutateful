@@ -14,6 +14,7 @@ namespace Mutate4l.Dto
         {
             var options = command.Options;
             // todo: This code can be cleaned up considerably. OptionDefinitions no longer needed, should be possible to do everything in one pass.
+            // todo: remove toggles-stuff. Not really needed much and adds complexity.
             T result = new T();
             System.Reflection.MemberInfo info = typeof(T);
             var props = result.GetType().GetProperties();

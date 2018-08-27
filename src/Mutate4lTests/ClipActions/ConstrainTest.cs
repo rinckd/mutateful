@@ -32,7 +32,7 @@ namespace Mutate4lTests.ClipActions
             };
             var options = new ConstrainOptions()
             {
-                Pitch = true
+                Mode = ConstrainMode.Pitch
             };
             var resultObj = Constrain.Apply(options, clip1, clip2);
             Assert.IsTrue(resultObj.Success);

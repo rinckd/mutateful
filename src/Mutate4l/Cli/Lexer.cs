@@ -56,7 +56,8 @@ namespace Mutate4l.Cli
             { "-count", Count },
             { "-duration", Duration },
             { "-enablemask", EnableMask },
-            { "-chunkchords", ChunkChords }
+            { "-chunkchords", ChunkChords },
+            { "-by", By }
         };
 
         private Dictionary<string, TokenType> EnumValues = new Dictionary<string, TokenType>
@@ -65,7 +66,10 @@ namespace Mutate4l.Cli
             { "event", Event },
             { "linear", Linear },
             { "easeinout", EaseInOut },
-            { "easein", EaseIn }
+            { "easein", EaseIn },
+            { "pitch", Pitches },
+            { "rhythm", Rhythm },
+            { "both", Both },
         };
 
         public Lexer(string buffer)
@@ -91,6 +95,23 @@ namespace Mutate4l.Cli
         private bool IsClipReference(int pos)
         {
             return (Buffer.Length > pos + 1 && IsAlpha(pos) && IsNumeric(pos + 1)) || Buffer[pos] == '*';
+        }
+
+        private bool IsInlineClip(int pos)
+        {
+            if (Buffer[pos] == '[')
+            {
+                int i = pos + 1;
+                while(i < Buffer.Length && (IsNumeric(Buffer[i]) || Buffer[i] == ' ' || Buffer[i] == '.'))
+                {
+                    i++;
+                }
+                if (Buffer[i] == ']')
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private bool IsMusicalDivision(int pos)
@@ -161,6 +182,10 @@ namespace Mutate4l.Cli
                         token = new Token(ClipReference, "*", position);
                     else
                         token = new Token(ClipReference, GetRemainingNumericToken(position, 2), position);
+                }
+                else if (IsInlineClip(position))
+                {
+                    token = new Token(InlineClip, Buffer.Substring(position, (Buffer.IndexOf(']', position) - position + 1)), position);
                 }
                 else if (IsMusicalDivision(position))
                 {

@@ -2,6 +2,7 @@
 using Mutate4l.Options;
 using Mutate4l.Utility;
 using System.Linq;
+using static Mutate4l.Options.ConstrainMode;
 
 namespace Mutate4l.Commands
 {
@@ -26,12 +27,12 @@ namespace Mutate4l.Commands
                 foreach (var note in slaveClip.Notes)
                 {
                     var constrainedNote = new NoteEvent(note);
-                    if (options.Pitch)
+                    if (options.Mode == Pitch || options.Mode == Both)
                     {
                         var absPitch = ClipUtilities.FindNearestNotePitchInSet(note, masterClip.Notes) % 12;
                         constrainedNote.Pitch = (((constrainedNote.Pitch / 12)) * 12) + (absPitch == 0 ? 12 : 0) + absPitch;
                     }
-                    if (options.Start)
+                    if (options.Mode == Rhythm || options.Mode == Both)
                     {
                         var newStart = ClipUtilities.FindNearestNoteStartInSet(note, masterClip.Notes);
                         constrainedNote.Start += (newStart - constrainedNote.Start) * (options.Strength / 100);

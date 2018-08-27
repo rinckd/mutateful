@@ -59,7 +59,6 @@ namespace Mutate4l.Commands
                             repeatsIndex++;
                         }
                     }
-                    resultClip.Length = position;
                     break;
                 case Time:
                     var srcPositions = clips.Select(c => new DecimalCounter(c.Length)).ToArray();
@@ -98,9 +97,9 @@ namespace Mutate4l.Commands
                             timeRangeIndex = (timeRangeIndex + 1) % options.Ranges.Length; // this means that you cannot use the Counts parameter to have varying time ranges for each repeat
                         }
                     }
-                    resultClip.Length = position;
                     break;
             }
+            resultClip.Length = position;
             return new ProcessResultArray<Clip>(new Clip[] { resultClip });
         }
     }

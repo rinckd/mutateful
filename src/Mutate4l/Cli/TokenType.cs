@@ -38,6 +38,7 @@
         Duration,
         ChunkChords,
         EnableMask,
+        By,
         _OptionsEnd,
 
         _EnumValuesBegin,
@@ -46,12 +47,16 @@
         Linear,
         EaseInOut,
         EaseIn,
+        Pitches, // todo: Quickfix to avoid conflict with Pitch. Need to find a better solution here...
+        Rhythm,
+        Both,
         _EnumValuesEnd,
 
         _ValuesBegin,
         ClipReference,
         Number,
         MusicalDivision,
+        InlineClip,
         _ValuesEnd,
 
         Colon,

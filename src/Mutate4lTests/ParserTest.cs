@@ -26,5 +26,12 @@ namespace Mutate4lTests
             Assert.AreEqual(command.SourceClips.Count, 2);
             Assert.AreEqual(command.TargetClips.Count, 1);
         }
+
+        [TestMethod]
+        public void TestParseFormulaToCommand()
+        {
+            var result = Parser.ParseFormulaToChainedCommand("{456} [4 1 70 0 4 100] constrain -by[4 1 70 0 0.5 100 70 0.5 0.5 100 70 1 0.5 100 70 1.5 0.5 100 70 2 0.5 100 70 2.5 0.5 100 70 3 0.5 100 70 3.5 0.5 100] -mode both");
+            var i = 0;
+        }
     }
 }
