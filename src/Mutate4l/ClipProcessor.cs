@@ -2,8 +2,8 @@
 using Mutate4l.Commands;
 using Mutate4l.Dto;
 using Mutate4l.IO;
-using Mutate4l.Options;
 using System.Linq;
+using static Mutate4l.Commands.Interleave;
 
 namespace Mutate4l
 {

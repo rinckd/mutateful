@@ -1,11 +1,25 @@
-﻿using Mutate4l.Dto;
-using Mutate4l.Options;
+﻿using Mutate4l.Core;
+using Mutate4l.Dto;
 using Mutate4l.Utility;
 using System.Linq;
-using static Mutate4l.Options.ConstrainMode;
+using static Mutate4l.Commands.ConstrainMode;
 
 namespace Mutate4l.Commands
 {
+    public enum ConstrainMode
+    {
+        Pitch,
+        Rhythm,
+        Both
+    }
+
+    public class ConstrainOptions
+    {
+        public ConstrainMode Mode { get; set; }
+
+        [OptionInfo(min: 1, max: 100)]
+        public int Strength { get; set; } = 100;
+    }
 
     // constrain: first clip timing and/or pitch is replicated on all following clips. Position is optionally scaled with the Strength parameter.
     public class Constrain

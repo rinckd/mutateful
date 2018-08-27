@@ -1,5 +1,5 @@
-﻿using Mutate4l.Dto;
-using Mutate4l.Options;
+﻿using Mutate4l.Core;
+using Mutate4l.Dto;
 using Mutate4l.Utility;
 using System;
 using System.Collections.Generic;
@@ -7,6 +7,14 @@ using System.Linq;
 
 namespace Mutate4l.Commands
 {
+    public class ArpeggiateOptions
+    {
+        [OptionInfo(min: 1, max: 10)]
+        public int Rescale { get; set; } = 2;
+
+        public bool RemoveOffset = true;
+    }
+
     public class Arpeggiate
     {
         // Add option to dynamically set # of events that should be rescaled to another note, probably via velocity.
