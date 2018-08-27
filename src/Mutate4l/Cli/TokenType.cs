@@ -13,6 +13,7 @@
         Monophonize,
         Ratchet,
         Scan,
+        Transpose,
         _CommandsEnd,
 
         _OptionsBegin,
@@ -50,6 +51,8 @@
         Pitches, // todo: Quickfix to avoid conflict with Pitch. Need to find a better solution here...
         Rhythm,
         Both,
+        Absolute,
+        Relative,
         _EnumValuesEnd,
 
         _ValuesBegin,

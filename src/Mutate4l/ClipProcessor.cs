@@ -42,17 +42,17 @@ namespace Mutate4l
             ProcessResultArray<Clip> resultContainer;
             switch (command.Id)
             {
-                case TokenType.Interleave:
-                    resultContainer = Interleave.Apply(OptionParser.ParseOptions<InterleaveOptions>(command), clips); 
+                case TokenType.Arpeggiate:
+                    resultContainer = Arpeggiate.Apply(OptionParser.ParseOptions<ArpeggiateOptions>(command), clips);
                     break;
                 case TokenType.Constrain:
                     resultContainer = Constrain.Apply(OptionParser.ParseOptions<ConstrainOptions>(command), clips);
                     break;
-                case TokenType.Slice:
-                    resultContainer = Slice.Apply(OptionParser.ParseOptions<SliceOptions>(command), clips);
+                case TokenType.Filter:
+                    resultContainer = Filter.Apply(OptionParser.ParseOptions<FilterOptions>(command), clips);
                     break;
-                case TokenType.Arpeggiate:
-                    resultContainer = Arpeggiate.Apply(OptionParser.ParseOptions<ArpeggiateOptions>(command), clips);
+                case TokenType.Interleave:
+                    resultContainer = Interleave.Apply(OptionParser.ParseOptions<InterleaveOptions>(command), clips); 
                     break;
                 case TokenType.Monophonize:
                     resultContainer = Monophonize.Apply(clips);
@@ -63,8 +63,11 @@ namespace Mutate4l
                 case TokenType.Scan:
                     resultContainer = Scan.Apply(OptionParser.ParseOptions<ScanOptions>(command), clips);
                     break;
-                case TokenType.Filter:
-                    resultContainer = Filter.Apply(OptionParser.ParseOptions<FilterOptions>(command), clips);
+                case TokenType.Slice:
+                    resultContainer = Slice.Apply(OptionParser.ParseOptions<SliceOptions>(command), clips);
+                    break;
+                case TokenType.Transpose:
+                    resultContainer = Transpose.Apply(OptionParser.ParseOptions<TransposeOptions>(command), clips);
                     break;
                 default:
                     // todo: error here

@@ -2,7 +2,6 @@
 using Mutate4l.Commands;
 using Mutate4l.Core;
 using Mutate4l.Dto;
-using Mutate4l.Options;
 
 namespace Mutate4lTests.ClipActions
 {

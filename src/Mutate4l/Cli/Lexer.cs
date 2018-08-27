@@ -30,7 +30,8 @@ namespace Mutate4l.Cli
             { "monophonize", Monophonize },
             { "ratchet", Ratchet },
             { "scan", Scan },
-            { "filter", Filter }
+            { "filter", Filter },
+            { "transpose", Transpose }
         };
 
         private Dictionary<string, TokenType> Options = new Dictionary<string, TokenType>
@@ -70,6 +71,8 @@ namespace Mutate4l.Cli
             { "pitch", Pitches },
             { "rhythm", Rhythm },
             { "both", Both },
+            { "absolute", Absolute },
+            { "relative", Relative }
         };
 
         public Lexer(string buffer)
