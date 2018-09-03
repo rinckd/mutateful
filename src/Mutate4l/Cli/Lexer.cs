@@ -25,10 +25,12 @@ namespace Mutate4l.Cli
             { "interleave", Interleave },
             { "constrain", Constrain },
             { "explode", Explode },
+            { "shuffle", Shuffle },
             { "slice", Slice },
             { "arpeggiate", Arpeggiate },
             { "monophonize", Monophonize },
             { "ratchet", Ratchet },
+            { "relength", Relength },
             { "scan", Scan },
             { "filter", Filter },
             { "transpose", Transpose }
@@ -58,7 +60,9 @@ namespace Mutate4l.Cli
             { "-duration", Duration },
             { "-enablemask", EnableMask },
             { "-chunkchords", ChunkChords },
-            { "-by", By }
+            { "-by", By },
+            { "-factor", Factor },
+            { "-from", From } 
         };
 
         private Dictionary<string, TokenType> EnumValues = new Dictionary<string, TokenType>
@@ -146,16 +150,33 @@ namespace Mutate4l.Cli
         {
             return c >= '0' && c <= '9';
         }
+        /*
+        private Token GetIdentifier(int pos)
+        {
+            var isOptionHeader = IsOption(pos);
+
+            int length = 1;
+            while (pos + length < Buffer.Length && (IsAlpha(pos + length)) {
+                length++;
+            }
+            return new Token(isOptionHeader ? TokenType.OptionHeader : TokenType)
+
+
+        }*/
 
         private Token GetIdentifier(int pos, params Dictionary<string, TokenType>[] validValues)
         {
             string identifier = "";
             int initialPos = pos;
+            int length = 0;
 
             while (pos < Buffer.Length && (IsAlpha(pos) || (initialPos == pos && IsOption(pos))))
             {
-                identifier += Buffer[pos++].ToString();
+                length++;
+                pos++;
             }
+            identifier = Buffer.Substring(initialPos, length);
+
             if (identifier.Length > 0 && validValues.Any(va => va.Any(v => v.Key == identifier)))
             {
                 return new Token(validValues.Where(va => va.Any(v => v.Key.Equals(identifier, StringComparison.InvariantCultureIgnoreCase))).First()[identifier.ToLower()], identifier, initialPos);

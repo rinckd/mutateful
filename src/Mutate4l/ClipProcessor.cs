@@ -3,7 +3,6 @@ using Mutate4l.Commands;
 using Mutate4l.Dto;
 using Mutate4l.IO;
 using System.Linq;
-using static Mutate4l.Commands.Interleave;
 
 namespace Mutate4l
 {
@@ -14,7 +13,7 @@ namespace Mutate4l
             Clip[] sourceClips = chainedCommand.SourceClips.Where(c => c.Notes.Count > 0).ToArray();
             if (sourceClips.Length < 1)
             {
-                return new Result("Clips are empty - aborting.");
+                return new Result("No clips or empty clips specified. Aborting.");
             }
 
             Clip[] currentSourceClips = sourceClips;
@@ -60,8 +59,14 @@ namespace Mutate4l
                 case TokenType.Ratchet:
                     resultContainer = Ratchet.Apply(OptionParser.ParseOptions<RatchetOptions>(command), clips);
                     break;
+                case TokenType.Relength:
+                    resultContainer = Relength.Apply(OptionParser.ParseOptions<RelengthOptions>(command), clips);
+                    break;
                 case TokenType.Scan:
                     resultContainer = Scan.Apply(OptionParser.ParseOptions<ScanOptions>(command), clips);
+                    break;
+                case TokenType.Shuffle:
+                    resultContainer = Shuffle.Apply(OptionParser.ParseOptions<ShuffleOptions>(command), clips);
                     break;
                 case TokenType.Slice:
                     resultContainer = Slice.Apply(OptionParser.ParseOptions<SliceOptions>(command), clips);

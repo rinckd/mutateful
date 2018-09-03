@@ -8,7 +8,8 @@ namespace Mutate4l.Commands
     public enum TransposeMode
     {
         Absolute,
-        Relative
+        Relative,
+        Overwrite
     }
 
     public class TransposeOptions
@@ -34,7 +35,13 @@ namespace Mutate4l.Commands
                 {
                     var noteEvent = clip.Notes[i];
                     var transposeNoteEvent = options.By.Notes[i % options.By.Notes.Count];
-                    noteEvent.Pitch += transposeNoteEvent.Pitch - basePitch;
+                    if (options.Mode == TransposeMode.Overwrite)
+                    {
+                        noteEvent.Pitch = transposeNoteEvent.Pitch;
+                    } else
+                    {
+                        noteEvent.Pitch += transposeNoteEvent.Pitch - basePitch;
+                    }
                 }
             }
             return new ProcessResultArray<Clip>(clips); // currently destructive

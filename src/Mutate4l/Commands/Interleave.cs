@@ -3,29 +3,29 @@ using Mutate4l.Dto;
 using Mutate4l.Utility;
 using System.Collections.Generic;
 using System.Linq;
-using static Mutate4l.Commands.Interleave.InterleaveMode;
+using static Mutate4l.Commands.InterleaveMode;
 
 namespace Mutate4l.Commands
 {
+    public class InterleaveOptions
+    {
+        public InterleaveMode Mode { get; set; } = Time;
+        public int[] Repeats { get; set; } = new int[] { 1 };
+        public decimal[] Ranges { get; set; } = new decimal[] { 1 };
+        public bool Mask { get; set; } = false; // Instead of vvv xxx=vxvxvx, the current input "masks" the corresponding location of other inputs, producing vxv instead. Rename skip maybe?
+        public bool ChunkChords { get; set; } = true; // Process notes having the exact same start times as a single event.
+        public int[] EnableMask { get; set; } = new int[] { 1 }; // Allows specifying a sequence of numbers to use as a mask for whether the note should be included or omitted. E.g. 1 0 will alternately play and omit every even/odd note. Useful when combining two or more clips but you want to retain only the notes for the current track. In this scenario you would have several formulas that are the same except having different masks.
+                                                                 // todo: add postscale param or similar, which accepts a list of decimals specifying scalefactor to be applied to each event/timechunk prior to adding it to the resulting clip (thus scalefactor should not interfere with the size of the slices for instance)
+    }
+
+    public enum InterleaveMode
+    {
+        Event,
+        Time
+    }
+
     public class Interleave
     {
-        public enum InterleaveMode
-        {
-            Event,
-            Time
-        }
-
-        public class InterleaveOptions
-        {
-            public InterleaveMode Mode { get; set; } = Time;
-            public int[] Repeats { get; set; } = new int[] { 1 };
-            public decimal[] Ranges { get; set; } = new decimal[] { 1 };
-            public bool Mask { get; set; } = false; // Instead of vvv xxx=vxvxvx, the current input "masks" the corresponding location of other inputs, producing vxv instead. Rename skip maybe?
-            public bool ChunkChords { get; set; } = true; // Process notes having the exact same start times as a single event.
-            public int[] EnableMask { get; set; } = new int[] { 1 }; // Allows specifying a sequence of numbers to use as a mask for whether the note should be included or omitted. E.g. 1 0 will alternately play and omit every even/odd note. Useful when combining two or more clips but you want to retain only the notes for the current track. In this scenario you would have several formulas that are the same except having different masks.
-                                                                     // todo: add postscale param or similar, which accepts a list of decimals specifying scalefactor to be applied to each event/timechunk prior to adding it to the resulting clip (thus scalefactor should not interfere with the size of the slices for instance)
-        }
-
         public static ProcessResultArray<Clip> Apply(InterleaveOptions options, params Clip[] clips)
         {
             if (clips.Length < 2)

@@ -2,9 +2,14 @@
 {
     public enum TokenType
     {
+        CommandName,
+        OptionHeader,
+        OptionValue,
+
         _CommandsBegin,
         Interleave,
         Constrain,
+        Shuffle,
         Slice,
         Explode,
         Arpeggiate,
@@ -12,6 +17,7 @@
         Filter,
         Monophonize,
         Ratchet,
+        Relength,
         Scan,
         Transpose,
         _CommandsEnd,
@@ -40,6 +46,8 @@
         ChunkChords,
         EnableMask,
         By,
+        Factor,
+        From,
         _OptionsEnd,
 
         _EnumValuesBegin,
@@ -53,6 +61,7 @@
         Both,
         Absolute,
         Relative,
+        Overwrite,
         _EnumValuesEnd,
 
         _ValuesBegin,
