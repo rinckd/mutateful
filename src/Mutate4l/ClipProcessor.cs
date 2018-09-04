@@ -53,6 +53,11 @@ namespace Mutate4l
                 case TokenType.Interleave:
                     resultContainer = Interleave.Apply(OptionParser.ParseOptions<InterleaveOptions>(command), clips); 
                     break;
+                case TokenType.InterleaveEvent:
+                    var options = OptionParser.ParseOptions<InterleaveOptions>(command);
+                    options.Mode = InterleaveMode.Event;
+                    resultContainer = Interleave.Apply(options, clips);
+                    break;
                 case TokenType.Monophonize:
                     resultContainer = Monophonize.Apply(clips);
                     break;

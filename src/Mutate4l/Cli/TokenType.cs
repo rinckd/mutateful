@@ -8,6 +8,7 @@
 
         _CommandsBegin,
         Interleave,
+        InterleaveEvent,
         Constrain,
         Shuffle,
         Slice,
@@ -47,7 +48,7 @@
         EnableMask,
         By,
         Factor,
-        From,
+        With,
         _OptionsEnd,
 
         _EnumValuesBegin,

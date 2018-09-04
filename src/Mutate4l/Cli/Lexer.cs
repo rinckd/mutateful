@@ -23,8 +23,13 @@ namespace Mutate4l.Cli
         private Dictionary<string, TokenType> Commands = new Dictionary<string, TokenType>
         {
             { "interleave", Interleave },
+            { "intrlv", Interleave },
+            { "il", Interleave },
+            { "interleavevent", InterleaveEvent },
+            { "intrlvnt", InterleaveEvent },
+            { "ilvt", InterleaveEvent },
+
             { "constrain", Constrain },
-            { "explode", Explode },
             { "shuffle", Shuffle },
             { "slice", Slice },
             { "arpeggiate", Arpeggiate },
@@ -62,7 +67,7 @@ namespace Mutate4l.Cli
             { "-chunkchords", ChunkChords },
             { "-by", By },
             { "-factor", Factor },
-            { "-from", From } 
+            { "-with", With} 
         };
 
         private Dictionary<string, TokenType> EnumValues = new Dictionary<string, TokenType>
