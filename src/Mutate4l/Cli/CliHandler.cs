@@ -2,6 +2,8 @@
 using Mutate4l.IO;
 using System;
 using System.Linq;
+using System.Net;
+using System.Net.Sockets;
 
 namespace Mutate4l.Cli
 {
@@ -9,64 +11,84 @@ namespace Mutate4l.Cli
     {
         public static void Start()
         {
-            while (true)
+            TcpListener server = null;
+            try
             {
-                var data = UdpConnector.WaitForData();
-                Console.WriteLine($"Received data: {data}");
-                var result = ParseAndProcessCommand(data);
-                if (!result.Success)
-                    Console.WriteLine(result.ErrorMessage);
-            }
-            
-/*            string command = "";
+                // Set the TcpListener on port 13000.
+                Int32 port = 13000;
+                IPAddress localAddr = IPAddress.Parse("127.0.0.1");
 
-            while (command != "q" && command != "quit")
-            {
-                Console.WriteLine("Mutate4L: Enter command, or [l]ist commands | [h]elp | [q]uit");
-                Console.Write("> ");
-                command = Console.ReadLine().Trim();
-                switch (command)
+                // TcpListener server = new TcpListener(port);
+                server = new TcpListener(localAddr, port);
+
+                // Start listening for client requests.
+                server.Start();
+
+                // Buffer for reading data
+                Byte[] bytes = new Byte[256];
+                String data = null;
+
+                // Enter the listening loop.
+                while (true)
                 {
-                    case "help":
-                    case "h":
-                        Console.WriteLine("Help text coming here");
-                        break;
-                    case "quit":
-                    case "q":
-                        break;
-                    case "hello":
-                    case "test":
-                        if (UdpConnector.TestCommunication())
+                    Console.Write("Waiting for a connection... ");
+
+                    // Perform a blocking call to accept requests.
+                    // You could also user server.AcceptSocket() here.
+                    TcpClient client = server.AcceptTcpClient();
+                    Console.WriteLine("Connected!");
+
+                    data = null;
+
+                    // Get a stream object for reading and writing
+                    NetworkStream stream = client.GetStream();
+
+                    int i;
+
+                    // Loop to receive all the data sent by the client.
+                    while ((i = stream.Read(bytes, 0, bytes.Length)) != 0)
+                    {
+                        // Translate data bytes to a ASCII string.
+                        data = System.Text.Encoding.ASCII.GetString(bytes, 0, i);
+                        Console.WriteLine("Received: {0}", data);
+
+                        // Process the data sent by the client.
+                        data = data.ToUpper();
+
+                        byte[] msg = System.Text.Encoding.ASCII.GetBytes(data);
+
+                        // Send back a response.
+                        stream.Write(msg, 0, msg.Length);
+                        Console.WriteLine("Sent: {0}", data);
+                    }
+
+                    // Shutdown and end connection
+                    client.Close();
+                }
+            }
+            catch (SocketException e)
+            {
+                Console.WriteLine("SocketException: {0}", e);
+            }
+            finally
+            {
+                // Stop listening for new clients.
+                server.Stop();
+            }
+
+            Console.WriteLine("\nHit enter to continue...");
+            Console.Read();
+
+            /*
+                        while (true)
                         {
-                            Console.WriteLine("Communication with Ableton Live up and running!");
-                        } else
-                        {
-                            Console.WriteLine("Error communicating with Ableton Live :(");
-                        }
-                        break;
-                    default:
-                        if (command.StartsWith("dump"))
-                        {
-                            DoDump(command);
-                        }
-                        else if (command.StartsWith("svg"))
-                        {
-                            DoSvg(command);
-                        }
-                        else if (command.StartsWith("enum"))
-                        {
-                            // enumerates all midi clips by prepending their "coordinates", i.e. A1, B5, and so on.
-                            UdpConnector.EnumerateClips();
-                        }
-                        else
-                        {
-                            var result = ParseAndProcessCommand(command);
+                            var data = UdpConnector.WaitForData();
+                            Console.WriteLine($"Received data: {data}");
+                            var result = ParseAndProcessCommand(data);
                             if (!result.Success)
                                 Console.WriteLine(result.ErrorMessage);
                         }
-                        break;
-                }
-            }*/
+            */
         }
 
         public static Result ParseAndProcessCommand(string command)
