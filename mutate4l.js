@@ -214,6 +214,12 @@ function getClipName(liveObject) {
     else return clipName[0];
 }
 
+function getClipLength(liveObject) {
+    var clipLength = liveObject.get("length");
+    if (clipLength.length > 0) return clipLength[0];
+    else return clipLength;
+}
+
 function clipRefToId(clipRef) {
     var target = resolveClipReference(clipRef);
     var liveObjectAtClip = getLiveObjectAtClip(target.x, target.y);
@@ -266,7 +272,7 @@ function getClipData(liveObject) {
     if (!liveObject) return;
     debuglog("Hello from getclipdata. trackNo is " + getTrackNumber(liveObject));
     var loopStart = liveObject.get('loop_start');
-    var clipLength = liveObject.get('length');
+    var clipLength = getClipLength(liveObject);
     var looping = liveObject.get('looping');
     var data = liveObject.call("get_notes", loopStart, 0, clipLength, 128);
     var result = clipLength + " " + looping + " ";
@@ -406,7 +412,7 @@ function getSelectedClip() {
         if (liveObject.get('has_clip')) {
             liveObject.goto("live_set view highlighted_clip_slot clip");
             var loopStart = liveObject.get('loop_start');
-            var clipLength = liveObject.get('length');
+            var clipLength = getClipLength(liveObject);
             var looping = liveObject.get('looping');
             var data = liveObject.call("get_notes", loopStart, 0, clipLength, 128);
             result += clipLength + " " + looping + " ";
@@ -565,10 +571,11 @@ function expandFormulaAsBytes(formula, ownId) {
     } else {
         formula = formula.substring(formulaStartIndex + 1).toLowerCase();
     }
-    var parts = formula.split(" ");
-    var clipDataBuffer = [];
-    var transformedPart;
-    var numberOfClips = 0;
+    var parts = formula.split(" "),
+        clipDataBuffer = [],
+        clipData,
+        transformedPart,
+        numberOfClips = 0, y;
 
     for (i = 0; i < parts.length; i++) {
         var part = parts[i];
@@ -588,35 +595,30 @@ function expandFormulaAsBytes(formula, ownId) {
             }
             debuglog("updated watchedClips for id " + liveObjectAtClip.id + ": " + watchedClips[liveObjectAtClip.id]);
             debuglog("Getting clipRef " + part);
-            var temp = getClipDataAsBytes(liveObjectAtClip, target.x, target.y);
-            transformedPart = new Uint8Array(4 /* 4 length bytes */ + temp.length);
-            int32ToBufferAtPos(temp.length, transformedPart, 0);
-            transformedPart.set(temp, 4);
-            for (var z = 0; z < transformedPart.length; z++) {
-                clipDataBuffer[clipDataBuffer.length] = transformedPart[z];
+            var clipData = getClipDataAsBytes(liveObjectAtClip, target.x, target.y);
+            for (var z = 0; z < clipData.length; z++) {
+                clipDataBuffer[clipDataBuffer.length] = clipData[z];
             }
+            transformedPart = getStringAsUint8Array("[" + numberOfClips + "]" + (i < parts.length - 1 ? " " : ""));
             numberOfClips++;
-            transformedPart = getStringAsUint8Array("[" + numberOfClips + "]");
         } else {
-            transformedPart = getStringAsUint8Array(part);
+            transformedPart = getStringAsUint8Array(part + (i < parts.length - 1 ? " " : ""));
         }
-        for (var y = 0; y < transformedPart.length; y++) {
+		debuglog("current part " + part);
+        for (y = 0; y < transformedPart.length; y++) {
             byteBuffer[byteBuffer.length] = transformedPart[y];
         }
-//        expandedFormulaParts.push(transformedPart);
     }
-    //var totalLength = 2 /* id bytes */ + 1 /* track number where formula resides */;
-/*    for (i = 0; i < expandedFormulaParts.length; i++) {
-        totalLength += expandedFormulaParts[i].length;
+    var metaDataBytes = new Uint8Array(4 /* id - 2 bytes, track no - 1 byte, number of inline clips - 1 byte */);
+    int16ToBufferAtPos(ownId, metaDataBytes, 0);
+    metaDataBytes[2] = getTrackNumber(new LiveAPI("id " + ownId));
+    metaDataBytes[3] = numberOfClips;
+    var metaData = [];
+    for (i = 0; i < metaDataBytes.length; i++) {
+        metaData[i] = metaDataBytes[i];
     }
-    for (i = 0; i < expandedFormulaParts.length; i++) {
-        for (var y = 0; y < expandedFormulaParts[i]; y++) {
-            byteBuffer[byteBuffer.length] = expandedFormulaParts[i][x];
-        }*/
-//        formulaAsBytes.set(expandedFormulaParts[i], startPos);
-//        startPos += expandedFormulaParts[i].length;
-    //}
-    return clipDataBuffer.concat(byteBuffer);
+	post(metaData.length + " " + clipDataBuffer.length + " " + byteBuffer.length + "\r\n");
+    return metaData.concat(clipDataBuffer).concat(byteBuffer);
 }
 
 function getClipDataAsBytes(liveObject, trackNo, clipNo) {
@@ -624,10 +626,12 @@ function getClipDataAsBytes(liveObject, trackNo, clipNo) {
     debuglog("Hello from getClipDataAsBytes. trackNo is " + getTrackNumber(liveObject));
 
     var loopStart = liveObject.get('loop_start'),
-        clipLength = liveObject.get('length'),
+        clipLength = getClipLength(liveObject),
         looping = liveObject.get('looping'),
         data = liveObject.call("get_notes", loopStart, 0, clipLength, 128),
         notes = [];
+
+    debuglog("getClipDataAsBytes clipLength = " + clipLength);
 
     for (var i = 2, len = data.length - 1; i < len; i += 6) {
         if (data[i + 5 /* muted */] === 1) {
@@ -675,6 +679,7 @@ function getSelectedClipAsBytes() {
 }
 
 function getStringAsUint8Array(value) {
+	debuglog("getting string " +  value);
     if (value.length === 0) return;
     var result = new Uint8ClampedArray(value.length);
     for (var i = 0; i < value.length; i++) {
@@ -683,7 +688,8 @@ function getStringAsUint8Array(value) {
     return value;
 }
 
-function floatToBufferAtPos(value, byteBuffer, pos) {
+function floatToBufferAtPos(value, byteBuffer, pos) { 
+    debuglog("floatToBufferAtPos: value " + value + " length " + value.length);
     var buffer = floatToByteArray(value);
     for (var i = 0; i < buffer.length; i++) {
         byteBuffer[pos + i] = buffer[i];
@@ -711,7 +717,10 @@ function int32ToBufferAtPos(value, byteBuffer, pos) {
 function floatToByteArray(value) {
     var floatValue = new Float32Array(1);
     floatValue[0] = value;
-    return new Uint8Array(floatValue.buffer);
+    debuglog("floatToByteArray: floatvalue set to " + floatValue[0]);
+    var result = new Uint8Array(floatValue.buffer);
+    debuglog("Returning " + result[0] + " " + result[1] + " " + result[2] + " " + result[3]);
+    return result;
 }
 
 function resolveClipReference(reference) {
@@ -737,14 +746,40 @@ function isAlpha(c) {
 
 /*
 
-data format:
+40 0 
+0 
+2 
+
+39 0 0 0 
+0 
+0 
+0 0 192 127 
+1 
+3 0 
+64 0 0 160 63 0 0 128 62 100 
+68 0 0 32 64 0 0 64 63 100 
+69 0 0 0 0 0 0 128 62 100 
+
+39 0 0 0 
+0 
+1 
+0 0 192 127 
+1 
+3 0 
+62 0 0 48 64 0 0 128 62 100 
+62 0 0 96 64 0 0 128 62 100 
+68 0 0 0 0 0 0 128 63 100 
+40 0 0 
+
+[ 0 ]   [ 1 ]   i n t e r l e a v e
+
+
+Revised format:
 
 2 bytes (id)
 1 byte (track number where processed clip will be placed - i.e. where formula is specified)
+1 byte number of inline clips
 
-x bytes - clip data chunk where
-    5 bytes (clip data id chunk - must be unique - something like 255,254,253,252,251 is unlikely to occur by chance in the data)
-    4 bytes (number of bytes in this chunk - excluding clip data id and the count itself (9 bytes total))
     1 byte  (track #)
     1 byte  (clip #)
     4 bytes (clip length - float)
@@ -756,8 +791,8 @@ x bytes - clip data chunk where
         4 bytes (duration - float)
         1 byte  (velocity)
 
-- or -
+    Above block repeated N times
 
-bytes to be converted into text and parsed
+Bytes to be converted into text and parsed, where inline clips look like [x] where x is the index of the clip specified in the first part of the payload
 
 */

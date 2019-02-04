@@ -1,6 +1,8 @@
 ﻿using Mutate4l.Dto;
 using Mutate4l.Utility;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -121,10 +123,34 @@ namespace Mutate4l.IO
 //                udpClient.Send(message, message.Length, "localhost", SendPort);
                 result = udpClient.Receive(ref endPoint);
             }
+            DecodeData(result);
             string rawData = Encoding.ASCII.GetString(result);
             for (var i = 0; i < result.Length; i++) { Console.Write(result[i] + ", "); }
             string data = OscHandler.GetOscStringValue(rawData);
             return data;
+        }
+
+        public static void DecodeData(byte[] data)
+        {
+            var clips = new List<Clip>();
+            ushort id = BitConverter.ToUInt16(data, 0);
+            byte trackNo = data[2];
+            byte numClips = data[3];
+
+            int dataOffset = 4;
+
+            byte currentClip = 0;
+            //            while (currentClip < numClips)
+            //            {
+            //if (BitConverter.IsLittleEndian) lengthData = lengthData.Reverse().ToArray();
+            ClipReference clipReference = new ClipReference(data[dataOffset], data[dataOffset + 1]);
+            float length = BitConverter.ToSingle(data, dataOffset + 2);
+            bool isLooping = data[dataOffset + 6] == 1;
+//            Clip clip = new Clip((decimal)length, isLooping);
+            ushort numNotes = BitConverter.ToUInt16(data, dataOffset + 7);
+
+//            }
+
         }
     }
 }
