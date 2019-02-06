@@ -552,14 +552,6 @@ function expandFormulaAsBytes(formula, ownId) {
         expandedFormulaParts = [], // array of Uint8Array
         i;
 
-    var formulaAsBytes = new Uint8Array(3);
-    int16ToBufferAtPos(ownId, formulaAsBytes, 0);
-    formulaAsBytes[2] = getTrackNumber(new LiveAPI("id " + ownId));
-    var byteBuffer = [];
-    byteBuffer[0] = formulaAsBytes[0];
-    byteBuffer[1] = formulaAsBytes[1];
-    byteBuffer[2] = formulaAsBytes[2];
-
     if (formula.length < 5) return;
 
     var formulaStartIndex = formula.indexOf("=");
@@ -575,7 +567,9 @@ function expandFormulaAsBytes(formula, ownId) {
         clipDataBuffer = [],
         clipData,
         transformedPart,
-        numberOfClips = 0, y;
+        numberOfClips = 0, 
+        y,
+        byteBuffer = [];
 
     for (i = 0; i < parts.length; i++) {
         var part = parts[i];
@@ -599,14 +593,14 @@ function expandFormulaAsBytes(formula, ownId) {
             for (var z = 0; z < clipData.length; z++) {
                 clipDataBuffer[clipDataBuffer.length] = clipData[z];
             }
-            transformedPart = getStringAsUint8Array("[" + numberOfClips + "]" + (i < parts.length - 1 ? " " : ""));
+            transformedPart = "[" + numberOfClips + "]" + (i < parts.length - 1 ? " " : "");
             numberOfClips++;
         } else {
-            transformedPart = getStringAsUint8Array(part + (i < parts.length - 1 ? " " : ""));
+            transformedPart = part + (i < parts.length - 1 ? " " : "");
         }
-		debuglog("current part " + part);
         for (y = 0; y < transformedPart.length; y++) {
-            byteBuffer[byteBuffer.length] = transformedPart[y];
+//            debuglog("Adding to bytebuffer " + transformedPart[y]);
+            byteBuffer[byteBuffer.length] = transformedPart.charCodeAt(y);
         }
     }
     var metaDataBytes = new Uint8Array(4 /* id - 2 bytes, track no - 1 byte, number of inline clips - 1 byte */);
@@ -794,5 +788,19 @@ Revised format:
     Above block repeated N times
 
 Bytes to be converted into text and parsed, where inline clips look like [x] where x is the index of the clip specified in the first part of the payload
+
+Return format:
+
+2 bytes (id)
+4 bytes (clip length - float)
+1 byte (loop state - 1/0 for on/off)
+2 bytes (number of notes)
+    1 byte  (pitch)
+    4 bytes (start - float)
+    4 bytes (duration - float)
+    1 byte  (velocity)
+
+Above block repeated N times
+
 
 */
