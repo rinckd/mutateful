@@ -40,44 +40,6 @@ function replaceAt(string, index, replace) {
   return string.substring(0, index) + replace + string.substring(index + 1);
 }
 
-function testOscBlob() {
-    var string = "/mu4l/test\0\0,s\0\0heidetteerentest";
-    post(string.length);
-    var countBytes = [4,0,0,0];
-    var valueBytes = [154,153,153,62];
-    //var result = new Uint8Array(countBytes.length + valueBytes.length);
-
-    /*for (var i = 0; i < string.length; i++)
-    {
-        charCode = string.charCodeAt(i);
-        result[i] = charCode & 0xFF;
-    }*//*
-    var pos = 0;
-    for (i = 0; i < countBytes.length; i++) {
-        result[pos++] = countBytes[i];
-    }
-    for (i = 0; i < valueBytes.length; i++) {
-        result[pos++] = valueBytes[i];
-    }
-    post(result.length + "\r\n");
-    for (i = 0; i < result.length; i++) {
-        post(result[i] + " ");
-    }
-    var finalRes = new Uint32Array(result.buffer);
-    var finalfinal = [];
-    finalfinal[0] = finalRes[0];
-    finalfinal[1] = finalRes[1];
-    finalfinal[2] = finalRes[2];
-    finalfinal[3] = finalRes[3];
-*/
-    var result = [];
-    for (var y = 0; y < 255; y++) {
-        result[y] = y;
-    }
-
-    outlet(0, ["/mu4l/test", result]);
-}
-
 function ObservableCallback(id) {
     this.id = id;
     this.name = "<not set>";
@@ -317,6 +279,64 @@ function setClip(trackNo, clipNo, dataString) {
     liveObject.set('looping', looping);
 }
 
+function getUint16FromByteArray(bytes, start) {
+    var temp = new Uint8Array(2);
+    temp[0] = bytes[start];
+    temp[1] = bytes[start + 1];
+    var value = new Uint16Array(temp.buffer);
+    return value[0];
+}
+
+function getFloat32FromByteArray(bytes, start) {
+    var temp = new Uint8Array(4);
+    for (var i = 0; i < 4; i++) {
+        temp[i] = bytes[i + start];
+    }
+    var value = new Float32Array(temp.buffer);
+    return value[0];
+}
+
+function getNormalizedFloatValue(val) {
+    var temp = val + ""; // convert to string
+    if (temp.indexOf(".") == -1) {
+        return temp + ".0";
+    } else {
+        return temp;
+    }
+}
+
+function setClipFromBytes() {
+    if (arguments.length < 9) {
+        post("Error - expected bigger payload");
+    }
+    var id = getUint16FromByteArray(arguments, 0);
+    var clipLength = getFloat32FromByteArray(arguments, 2);
+    var isLooping = (arguments[6] == 1 ? true : false);
+    var numNotes = getUint16FromByteArray(arguments, 7);
+    var startOffset = 9;
+
+    var liveObject = new LiveAPI("id " + id);
+    liveObject.set('loop_start', '0');
+    liveObject.set('loop_end', clipLength);
+    liveObject.set('end_marker', clipLength);
+    liveObject.call('select_all_notes');
+    liveObject.call('replace_selected_notes');
+    liveObject.call('notes', numNotes);
+    for (var c = 0; c < numNotes; c++) {
+        var pitch = arguments[startOffset];
+        var start = getNormalizedFloatValue(getFloat32FromByteArray(arguments, startOffset + 1));
+        var duration = getNormalizedFloatValue(getFloat32FromByteArray(arguments, startOffset + 5));
+        var velocity = arguments[startOffset + 9];
+        if (start.indexOf(".") == -1) {
+            start += ".0";
+        }
+        liveObject.call('note', pitch, start, duration, velocity, 0 /* not muted */);
+        startOffset += 10;
+    }
+    liveObject.call('done');
+    liveObject.set('looping', isLooping);
+}
+
 function setClipById(id, dummy, dataString) {
     debuglog("hello from setClipById");
     var data = dataString.split(' ');
@@ -381,13 +401,10 @@ function enumerate() {
                 if (liveObject.get('has_clip') > 0) {
                     liveObject.goto("live_set tracks " + i + " clip_slots " + s + " clip");
                     var existingName = getClipName(liveObject);
-debuglog(existingName.charCodeAt(0));
                     var newName = "";
                     var clipRefString = String.fromCharCode(65 + i) + (s + 1);
                     var startBracketIx = existingName.indexOf("[");
-debuglog(startBracketIx);
                     var endBracketIx = existingName.indexOf("]", startBracketIx);
-debuglog(endBracketIx);
                     if (startBracketIx >= 0 && endBracketIx >= 0) {
                         newName = existingName.substring(0, startBracketIx + 1) + clipRefString + existingName.substring(endBracketIx);
                     } else {
@@ -673,8 +690,7 @@ function getSelectedClipAsBytes() {
 }
 
 function getStringAsUint8Array(value) {
-	debuglog("getting string " +  value);
-    if (value.length === 0) return;
+	if (value.length === 0) return;
     var result = new Uint8ClampedArray(value.length);
     for (var i = 0; i < value.length; i++) {
         result[i] = value.charCodeAt(i);
@@ -683,7 +699,6 @@ function getStringAsUint8Array(value) {
 }
 
 function floatToBufferAtPos(value, byteBuffer, pos) { 
-    debuglog("floatToBufferAtPos: value " + value + " length " + value.length);
     var buffer = floatToByteArray(value);
     for (var i = 0; i < buffer.length; i++) {
         byteBuffer[pos + i] = buffer[i];
@@ -711,9 +726,7 @@ function int32ToBufferAtPos(value, byteBuffer, pos) {
 function floatToByteArray(value) {
     var floatValue = new Float32Array(1);
     floatValue[0] = value;
-    debuglog("floatToByteArray: floatvalue set to " + floatValue[0]);
     var result = new Uint8Array(floatValue.buffer);
-    debuglog("Returning " + result[0] + " " + result[1] + " " + result[2] + " " + result[3]);
     return result;
 }
 
@@ -739,34 +752,6 @@ function isAlpha(c) {
 }
 
 /*
-
-40 0 
-0 
-2 
-
-39 0 0 0 
-0 
-0 
-0 0 192 127 
-1 
-3 0 
-64 0 0 160 63 0 0 128 62 100 
-68 0 0 32 64 0 0 64 63 100 
-69 0 0 0 0 0 0 128 62 100 
-
-39 0 0 0 
-0 
-1 
-0 0 192 127 
-1 
-3 0 
-62 0 0 48 64 0 0 128 62 100 
-62 0 0 96 64 0 0 128 62 100 
-68 0 0 0 0 0 0 128 63 100 
-40 0 0 
-
-[ 0 ]   [ 1 ]   i n t e r l e a v e
-
 
 Revised format:
 
@@ -801,6 +786,5 @@ Return format:
     1 byte  (velocity)
 
 Above block repeated N times
-
 
 */
