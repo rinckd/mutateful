@@ -93,7 +93,7 @@ namespace Mutate4lTests
             Assert.AreEqual(2, clip1.Notes.Count);
         }
 
-        [TestMethod]
+        //[TestMethod]
         public void MyTestMethod()
         {
             for (var i = 10; i < 36; i += 5)
