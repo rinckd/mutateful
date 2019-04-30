@@ -50,16 +50,20 @@ namespace Mutate4l.Cli
                     continue;
                 }
 
-                var attributes = property.GetCustomAttributes(false)
+                /*var attributes = property.GetCustomAttributes(false)
                     .Select(a => (OptionInfo)a)
                     .Where(a => a.Type == OptionType.AllOrSpecified)
-                    .ToArray(); //.GroupBy(p => p.GroupId).Select(g => new OptionGroup(g.S))
+                    .ToArray(); //.GroupBy(p => p.GroupId).Select(g => new OptionGroup(g.S))*/
+                bool noImplicitCast = property
+                    .GetCustomAttributes(false)
+                    .Select(a => (OptionInfo)a)
+                    .First(a => a.NoImplicitCast == true)?.NoImplicitCast ?? false;
 
                 // handle value properties
                 if (options.ContainsKey(option))
                 {
                     var tokens = options[option];
-                    ProcessResultArray<object> res = ExtractPropertyData(property, tokens);
+                    ProcessResultArray<object> res = ExtractPropertyData(property, tokens, noImplicitCast);
                     if (!res.Success)
                     {
                         return (false, res.ErrorMessage);
@@ -70,11 +74,22 @@ namespace Mutate4l.Cli
             return (true, "");
         }
 
-        public static ProcessResultArray<object> ExtractPropertyData(PropertyInfo property, List<Token> tokens)
+        public static ProcessResultArray<object> ExtractPropertyData(PropertyInfo property, List<Token> tokens, bool noImplicitCast = false)
         {
             TokenType? type = tokens.FirstOrDefault()?.Type;
+            // handle implicit cast from number or MusicalDivision to decimal
+            if (property.PropertyType == typeof(decimal) && !noImplicitCast && tokens.All(t => t.Type == TokenType.Number || t.Type == TokenType.MusicalDivision || t.Type == TokenType.Decimal))
+            {
+                tokens = tokens.Select(t =>
+                {
+                    if (t.Type == TokenType.MusicalDivision) return new Token(TokenType.Decimal, t.)
+                    if (t.Type == TokenType.Number) return new Token(t * 4;
+                });
+            }
+
             if (!tokens.All(t => t.Type == type))
             {
+
                 return new ProcessResultArray<object>("Invalid option values: Values for a single option need to be of the same type.");
             }
             if (tokens.Count == 0)
@@ -132,9 +147,14 @@ namespace Mutate4l.Cli
                         }
                         else switch (type)
                         {
-                            case TokenType.MusicalDivision when property.PropertyType == typeof(decimal[]):
+                            /*case TokenType.MusicalDivision when property.PropertyType == typeof(decimal[]):
                             {
                                 decimal[] values = tokens.Select(t => Utilities.MusicalDivisionToDecimal(t.Value)).ToArray();
+                                return new ProcessResultArray<object>(new object[] { values });
+                            }*/
+                            case TokenType.Decimal when property.PropertyType == typeof(decimal[]):
+                            {
+                                decimal[] values = tokens.Select(t => decimal.Parse(t.Value)).ToArray();
                                 return new ProcessResultArray<object>(new object[] { values });
                             }
                             case TokenType.InlineClip when property.PropertyType == typeof(Clip):

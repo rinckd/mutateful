@@ -1,8 +1,10 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Mutate4l.Cli;
+using Mutate4l.Commands;
 using System;
 using System.Collections.Generic;
 using Mutate4l.Core;
+using System.Linq;
 
 namespace Mutate4lTests
 {
@@ -38,7 +40,24 @@ namespace Mutate4lTests
         public void TestParseInvalidInput()
         {
             var result = Parser.ParseFormulaToChainedCommand("[0] interleave % fisk -by [1] -mode event", new List<Clip> {Clip1, Clip2}, new ClipMetaData(100, 0));
-            Console.Write(result.ErrorMessage);
+            Assert.IsFalse(result.Success);
+        }
+
+        [TestMethod]
+        public void TestParseMusicalDivision()
+        {
+            var result = Parser.ParseFormulaToChainedCommand("[0] interleave -mode time -ranges 1/16 15/16 16/1", new List<Clip> { Clip1 }, new ClipMetaData(100, 0));
+            Assert.IsTrue(result.Success);
+        }
+
+        [TestMethod]
+        public void TestCastNumberToMusicalDivision()
+        {
+            var command = Parser.ParseFormulaToChainedCommand("[0] interleave -mode time -ranges 1/8 2 1 4", new List<Clip> { Clip1 }, new ClipMetaData(100, 0));
+            Assert.IsTrue(command.Success);
+            var (success, msg) = OptionParser.TryParseOptions(command.Result.Commands.First(), out InterleaveOptions options);
+            Assert.AreEqual(0.5m, options.Ranges[0]);
+            Assert.AreEqual(8, options.Ranges[1]);
         }
         
 
