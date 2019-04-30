@@ -124,33 +124,36 @@ namespace Mutate4l.Cli
 
         public bool IsDecimalValue(int pos)
         {
-            int i = pos;
-            int? decimalPointFoundAt = null;
+            var i = pos;
+            var decimalPointFoundAt = -1;
             while (i < Buffer.Length && (IsNumeric(Buffer[i]) || Buffer[i] == '.'))
             {
                 if (Buffer[i] == '.')
                 {
-                    if (decimalPointFoundAt == null)
-                    {
-                        decimalPointFoundAt = i - pos;
-                    }
-                    else
-                    {
-                        return false;
-                    }
+                    if (decimalPointFoundAt < 0) decimalPointFoundAt = i - pos;
+                    else return false;
                 }
                 i++;
             }
-            if (decimalPointFoundAt == null)
-            {
-                return false;
-            }
-            return i > (pos + decimalPointFoundAt + 1);
+            if (decimalPointFoundAt < 0) return false;
+            return i > pos + decimalPointFoundAt + 1;
         }
 
         private bool IsMusicalDivision(int pos)
         {
-            return Buffer.Length > pos + 2 && IsNumeric(pos) && Buffer[pos + 1] == '/' && IsNumeric(pos + 2);
+            var i = pos;
+            var slashFoundAt = -1;
+            while (i < Buffer.Length && (IsNumeric(Buffer[i]) || Buffer[i] == '/'))
+            {
+                if (Buffer[i] == '/')
+                {
+                    if (slashFoundAt < 0) slashFoundAt = i - pos;
+                    else return false;
+                }
+                i++;
+            }
+            if (slashFoundAt < 0) return false;
+            return i > pos + slashFoundAt + 1;
         }
 
         private bool IsAlpha(int pos)
@@ -247,7 +250,7 @@ namespace Mutate4l.Cli
                 else if (IsMusicalDivision(Position))
                 {
                     // enhancement: input in the form bars.beats.sixteenths (i.e. the format used in Ableton Live could be converted to musical divisions as well)
-                    token = new Token(MusicalDivision, GetRemainingNumericToken(Position, 3), Position);
+                    token = new Token(MusicalDivision, GetMusicalDivisionToken(Position), Position);
                 }
                 else if (IsDecimalValue(Position))
                 {
@@ -307,12 +310,22 @@ namespace Mutate4l.Cli
                 offset++;
             }
             return Buffer.Substring(position, offset);
-        }
-
+        }        
+        
         private string GetDecimalToken(int position)
         {
             int offset = 0;
             while (position + offset < Buffer.Length && (IsNumeric(Buffer[position + offset]) || Buffer[position + offset] == '.')) 
+            {
+                offset++;
+            }
+            return Buffer.Substring(position, offset);
+        }
+
+        private string GetMusicalDivisionToken(int position)
+        {
+            int offset = 0;
+            while (position + offset < Buffer.Length && (IsNumeric(Buffer[position + offset]) || Buffer[position + offset] == '/')) 
             {
                 offset++;
             }

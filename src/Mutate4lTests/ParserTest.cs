@@ -55,9 +55,12 @@ namespace Mutate4lTests
         {
             var command = Parser.ParseFormulaToChainedCommand("[0] interleave -mode time -ranges 1/8 2 1 4", new List<Clip> { Clip1 }, new ClipMetaData(100, 0));
             Assert.IsTrue(command.Success);
-            var (success, msg) = OptionParser.TryParseOptions(command.Result.Commands.First(), out InterleaveOptions options);
+            var (success, _) = OptionParser.TryParseOptions(command.Result.Commands.First(), out InterleaveOptions options);
+            Assert.IsTrue(success);
             Assert.AreEqual(0.5m, options.Ranges[0]);
             Assert.AreEqual(8, options.Ranges[1]);
+            Assert.AreEqual(4, options.Ranges[2]);
+            Assert.AreEqual(16, options.Ranges[3]);
         }
         
 
