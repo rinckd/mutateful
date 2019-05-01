@@ -139,7 +139,7 @@ namespace Mutate4l.Cli
             return i > pos + decimalPointFoundAt + 1;
         }
 
-        private bool IsMusicalDivision(int pos)
+        public bool IsMusicalDivision(int pos)
         {
             var i = pos;
             var slashFoundAt = -1;
@@ -154,6 +154,29 @@ namespace Mutate4l.Cli
             }
             if (slashFoundAt < 0) return false;
             return i > pos + slashFoundAt + 1;
+        }
+        
+        public bool IsBarsBeatsSixteenths(int pos)
+        {
+            var foundPeriods = 0;
+            var periodIxs = new int[2];
+            var i = pos;
+            while (i < Buffer.Length && (IsNumeric(Buffer[i]) || Buffer[i] == '.'))
+            {
+                if (Buffer[i] == '.')
+                {
+                    if (foundPeriods < periodIxs.Length)
+                    {
+                        periodIxs[foundPeriods++] = i - pos;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+                i++;
+            }
+            return foundPeriods == 2 && periodIxs[1] - periodIxs[0] > 1 && periodIxs[0] > 0 && periodIxs[1] < i - pos - 1;
         }
 
         private bool IsAlpha(int pos)
@@ -180,7 +203,7 @@ namespace Mutate4l.Cli
         {
             return c >= '0' && c <= '9';
         }
-
+        
         private (bool Success, String ErrorMessage, Token Token) GetIdentifier(int pos, params Dictionary<string, TokenType>[] validValues)
         {
             string identifier = "";
@@ -249,12 +272,15 @@ namespace Mutate4l.Cli
                 }
                 else if (IsMusicalDivision(Position))
                 {
-                    // enhancement: input in the form bars.beats.sixteenths (i.e. the format used in Ableton Live could be converted to musical divisions as well)
                     token = new Token(MusicalDivision, GetMusicalDivisionToken(Position), Position);
                 }
                 else if (IsDecimalValue(Position))
                 {
                     token = new Token(TokenType.Decimal, GetDecimalToken(Position), Position);
+                }
+                else if (IsBarsBeatsSixteenths(Position))
+                {
+                    token = new Token(BarsBeatsSixteenths, GetDecimalToken(Position), Position);
                 }
                 else if (IsNumeric(Position))
                 {
@@ -286,6 +312,7 @@ namespace Mutate4l.Cli
             }
             return (false, true, "No more tokens available");
         }
+
 
         private string GetErroneousTokenExcerpt()
         {

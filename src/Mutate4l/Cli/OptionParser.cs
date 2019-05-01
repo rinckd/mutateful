@@ -1,10 +1,10 @@
-﻿using Mutate4l.Cli;
-using Mutate4l.Core;
-using Mutate4l.Utility;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Mutate4l.Core;
+using Mutate4l.Utility;
+using static Mutate4l.Cli.TokenType;
 
 namespace Mutate4l.Cli
 {
@@ -20,8 +20,8 @@ namespace Mutate4l.Cli
             {
                 if (Enum.TryParse(property.Name, out TokenType option))
                 {
-                    if (!(option > TokenType._OptionsBegin && option < TokenType._OptionsEnd ||
-                          option > TokenType._TestOptionsBegin && option < TokenType._TestOptionsEnd))
+                    if (!(option > _OptionsBegin && option < _OptionsEnd ||
+                          option > _TestOptionsBegin && option < _TestOptionsEnd))
                     {
                         return (false, $"Property {property.Name} is not a valid option or test option.");
                     }
@@ -31,6 +31,11 @@ namespace Mutate4l.Cli
                     return (false, $"No corresponding entity found for {property.Name}");
                 }
 
+                bool noImplicitCast = property
+                                          .GetCustomAttributes(false)
+                                          .Select(a => (OptionInfo) a)
+                                          .FirstOrDefault(a => a.NoImplicitCast)?.NoImplicitCast ?? false;
+                
                 OptionInfo defaultAttribute = property
                     .GetCustomAttributes(false)
                     .Select(a => (OptionInfo) a)
@@ -39,7 +44,7 @@ namespace Mutate4l.Cli
                 if (defaultAttribute != null && command.DefaultOptionValues.Count > 0)
                 {
                     var tokens = command.DefaultOptionValues;
-                    ProcessResultArray<object> res = ExtractPropertyData(property, tokens);
+                    ProcessResultArray<object> res = ExtractPropertyData(property, tokens, noImplicitCast);
                     if (!res.Success)
                     {
                         return (false, res.ErrorMessage);
@@ -48,11 +53,6 @@ namespace Mutate4l.Cli
                     property.SetMethod?.Invoke(result, res.Result);
                     continue;
                 }
-
-                bool noImplicitCast = property
-                                          .GetCustomAttributes(false)
-                                          .Select(a => (OptionInfo) a)
-                                          .FirstOrDefault(a => a.NoImplicitCast)?.NoImplicitCast ?? false;
 
                 // handle value properties
                 if (options.ContainsKey(option))
@@ -90,15 +90,17 @@ namespace Mutate4l.Cli
             switch (type)
             {
                 // handle single value
-                case TokenType.MusicalDivision when property.PropertyType == typeof(decimal):
+                case MusicalDivision when property.PropertyType == typeof(decimal) && !noImplicitCast:
                     return new ProcessResultArray<object>(new object[] {Utilities.MusicalDivisionToDecimal(tokens[0].Value)});
+                case BarsBeatsSixteenths when property.PropertyType == typeof(decimal) && !noImplicitCast:
+                    return new ProcessResultArray<object>(new object[] {Utilities.BarsBeatsSixteenthsToDecimal(tokens[0].Value)});
                 case TokenType.Decimal when property.PropertyType == typeof(decimal):
                     return new ProcessResultArray<object>(new object[] {decimal.Parse(tokens[0].Value)});
-                case TokenType.Number when property.PropertyType == typeof(decimal) && !noImplicitCast:
-                    return new ProcessResultArray<object>(new object[] {int.Parse(tokens[0].Value) * 4m});
-                case TokenType.Decimal when property.PropertyType == typeof(int):
+                case Number when property.PropertyType == typeof(decimal) && !noImplicitCast:
+                    return new ProcessResultArray<object>(new object[] {Utilities.MusicalDivisionToDecimal(tokens[0].Value)});
+                case TokenType.Decimal when property.PropertyType == typeof(int) && !noImplicitCast:
                     return new ProcessResultArray<object>(new object[] {(decimal) int.Parse(tokens[0].Value)});
-                case TokenType.Number when property.PropertyType == typeof(int):
+                case Number when property.PropertyType == typeof(int):
                 {
                     // todo: extract this logic so that it can be used in the list version below as well
                     var rangeInfo = property
@@ -132,13 +134,13 @@ namespace Mutate4l.Cli
                     }
 
                     if (property.PropertyType == typeof(decimal[]) && !noImplicitCast &&
-                        tokens.All(t => t.Type == TokenType.Number || t.Type == TokenType.MusicalDivision || t.Type == TokenType.Decimal))
+                        tokens.All(t => t.Type == Number || t.Type == MusicalDivision || t.Type == TokenType.Decimal || t.Type == BarsBeatsSixteenths))
                     {
                         // handle implicit cast from number or MusicalDivision to decimal
                         decimal[] values = tokens.Select(t =>
                         {
-                            if (t.Type == TokenType.MusicalDivision) return Utilities.MusicalDivisionToDecimal(t.Value);
-                            if (t.Type == TokenType.Number) return int.Parse(t.Value) * 4m;
+                            if (t.Type == MusicalDivision || t.Type == Number) return Utilities.MusicalDivisionToDecimal(t.Value);
+                            if (t.Type == BarsBeatsSixteenths) return Utilities.BarsBeatsSixteenthsToDecimal(t.Value);
                             return decimal.Parse(t.Value);
                         }).ToArray();
                         return new ProcessResultArray<object>(new object[] {values});
@@ -151,10 +153,14 @@ namespace Mutate4l.Cli
 
                     switch (type)
                     {
-                        case TokenType.MusicalDivision when property.PropertyType == typeof(decimal[]):
+                        case MusicalDivision when property.PropertyType == typeof(decimal[]) && !noImplicitCast:
                         {
-                            decimal[] values = tokens.Select(t => Utilities.MusicalDivisionToDecimal(t.Value))
-                                .ToArray();
+                            decimal[] values = tokens.Select(t => Utilities.MusicalDivisionToDecimal(t.Value)).ToArray();
+                            return new ProcessResultArray<object>(new object[] {values});
+                        }                        
+                        case BarsBeatsSixteenths when property.PropertyType == typeof(decimal[]) && !noImplicitCast:
+                        {
+                            decimal[] values = tokens.Select(t => Utilities.BarsBeatsSixteenthsToDecimal(t.Value)).ToArray();
                             return new ProcessResultArray<object>(new object[] {values});
                         }
                         case TokenType.Decimal when property.PropertyType == typeof(decimal[]):
@@ -162,9 +168,9 @@ namespace Mutate4l.Cli
                             decimal[] values = tokens.Select(t => decimal.Parse(t.Value)).ToArray();
                             return new ProcessResultArray<object>(new object[] {values});
                         }
-                        case TokenType.InlineClip when property.PropertyType == typeof(Clip):
+                        case InlineClip when property.PropertyType == typeof(Clip):
                             return new ProcessResultArray<object>(new object[] {tokens[0].Clip});
-                        case TokenType.Number when property.PropertyType == typeof(int[]):
+                        case Number when property.PropertyType == typeof(int[]):
                         {
                             int[] values = tokens.Select(t => int.Parse(t.Value)).ToArray();
                             return new ProcessResultArray<object>(new object[] {values});

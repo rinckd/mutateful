@@ -61,8 +61,33 @@ namespace Mutate4lTests
             Assert.AreEqual(8, options.Ranges[1]);
             Assert.AreEqual(4, options.Ranges[2]);
             Assert.AreEqual(16, options.Ranges[3]);
-        }
+        }        
+
+        [TestMethod]
+        public void TestConvertBarsBeatsSixteenths()
+        {
+            var command = Parser.ParseFormulaToChainedCommand("[0] interleave -mode time -ranges 0.0.2 0.2.0 0.1.0 1.0.0 1.0.1", new List<Clip> { Clip1 }, new ClipMetaData(100, 0));
+            Assert.IsTrue(command.Success);
+            var (success, _) = OptionParser.TryParseOptions(command.Result.Commands.First(), out InterleaveOptions options);
+            Assert.IsTrue(success);
+            Assert.AreEqual(0.5m, options.Ranges[0]);
+            Assert.AreEqual(2, options.Ranges[1]);
+            Assert.AreEqual(1, options.Ranges[2]);
+            Assert.AreEqual(4, options.Ranges[3]);
+            Assert.AreEqual(4.25m, options.Ranges[4]);
+        }        
         
+        [TestMethod]
+        public void TestCastNumberWhenNoImplicitCastSet()
+        {
+            var command = Parser.ParseFormulaToChainedCommand("[0] resize 1/8", new List<Clip> { Clip1 }, new ClipMetaData(100, 0));
+            Assert.IsTrue(command.Success);
+            var (success, _) = OptionParser.TryParseOptions(command.Result.Commands.First(), out ResizeOptions _);
+            Assert.IsFalse(success);
+            command = Parser.ParseFormulaToChainedCommand("[0] resize 0.5", new List<Clip> { Clip1 }, new ClipMetaData(100, 0));
+            (success, _) = OptionParser.TryParseOptions(command.Result.Commands.First(), out ResizeOptions _);
+            Assert.IsTrue(success);
+        }
 
 //        [TestMethod]
         /*public void TestParseTokensToCommand()
