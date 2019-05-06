@@ -2,13 +2,13 @@
 
 **tl;dr:** `mutate4l` enables live coding in Ableton Live's session view. Set up transformations that trigger whenever a source clip is changed, including arpeggiation, shuffling, and ratcheting/retriggering.
 
-<p align="center">
-  <img src="https://github.com/carrierdown/mutate4l/blob/feature/new-readme/assets/mu4l-walkthrough.gif" alt="mutate4l in action">
-</p>
-
 > With live coding being all the rage this looks like a groovy new idea to bring that excitement and its new possibilities to Ableton. I’m watching closely.
 >
 > &mdash; Matt Black, co-founder of Ninja Tune & Coldcut.
+
+<p align="center">
+  <img src="https://github.com/carrierdown/mutate4l/blob/feature/new-readme/assets/mu4l-walkthrough.gif" alt="mutate4l in action">
+</p>
 
 ## Intro
 `mutate4l` reimagines Ableton Live's session view as a spreadsheet, enabling you to transform and create new clips dynamically whenever a source clip is changed. It can be compared to a lightweight live coding setup right inside Ableton Live. You can add formulas to shuffle, arpeggiate, constrain, scale, retrigger, and otherwise transform clips in myriad ways. Unlike most experimental sequencers however, `mutate4l` leverages Live's own clip sequencer and thus allows you to use any existing midi clip as a source of new inspiration. 
